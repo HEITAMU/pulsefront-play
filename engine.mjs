@@ -1,5 +1,6 @@
+import {pickHeatEffects} from './overheat.mjs';
 import {arrangementFor,sectionAt} from './arrangement.mjs';
-export const VERSION='1.4.0';
+export const VERSION='1.5.0';
 export const MODULES=[{"id": "echo", "name": "回旋音浪", "description": "音浪到达远端后返回，再造成一次伤害。", "family": "wave"}, {"id": "reverb", "name": "宽幅共鸣", "description": "音浪伤害提高25%，命中范围加宽。", "family": "wave"}, {"id": "tempo", "name": "急速脉冲", "description": "音浪速度提高30%，长按射速提高15%。", "family": "wave"}, {"id": "prism", "name": "折射镜阵", "description": "激光命中后折向附近另一名敌人。", "family": "laser"}, {"id": "focus", "name": "聚焦透镜", "description": "激光伤害提高30%。", "family": "laser"}, {"id": "pierce", "name": "穿甲光束", "description": "激光忽略护盾，额外发射一束。", "family": "laser"}, {"id": "blast", "name": "连锁爆破", "description": "击杀引发小范围爆炸，可连锁触发。", "family": "blast"}, {"id": "chain", "name": "震荡扩散", "description": "爆炸范围提高45%，爆炸伤害提高20%。", "family": "blast"}, {"id": "shrapnel", "name": "碎片弹头", "description": "每次开火额外发射两枚追踪弹。", "family": "blast"}, {"id": "gravity", "name": "引力核心", "description": "每四次攻击生成聚怪黑洞。", "family": "gravity"}, {"id": "orbit", "name": "轨道牵引", "description": "每次击杀回复少量超载能量。", "family": "gravity"}, {"id": "vortex", "name": "坍缩涡流", "description": "黑洞持续更久，并持续伤害其中敌人。", "family": "gravity"}];
 export function directionalWeight(angle,aim){if(aim==null)return 0;const delta=Math.atan2(Math.sin(angle-aim),Math.cos(angle-aim));return Math.abs(delta)>=.7?0:(1+Math.cos(Math.PI*delta/.7))/2;}
 export const BPM=116;
@@ -15,7 +16,7 @@ export function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=
 export class Battle {
  constructor(level=1,{width=420,height=840,seed=1,tempo=116,modules=[],finisher='wave',emit=()=>{}}={}){
   this.modules=new Set(modules.filter(id=>MODULES.some(m=>m.id===id)));this.aim=null;this.finisher=finisher;this.wells=[];this.pendingOverdrive=false;this.blastDepth=0;this.beatDuration=60/Math.max(70,Math.min(150,tempo));this.rhythmTime=null;this.revived=false;this.c=configFor(level,60/this.beatDuration);this.arrangement=arrangementFor(this.c.level,60/this.beatDuration);this.c.duration=this.arrangement.duration;this.musicPhase='groove';this.climaxHits=0;this.climaxBursts=0;this.w=width;this.h=height;this.cx=width/2;this.cy=height-142;this.radius=82;
-  this.random=rng(level*7919+seed);this.emit=emit;this.t=0;this.state='playing';this.hp=100;this.score=0;this.kills=0;this.combo=0;this.maxCombo=0;this.lastKill=-10;this.shots=0;this.perfects=0;this.lastBeat=-1;this.cooldown=0;this.repeat=0;this.held=false;this.weapon='wave';this.enemies=[];this.waves=[];this.beams=[];this.bolts=[];this.spawnClock=.65;this.id=0;this.bossSpawned=false;this.bossDefeated=false;this.hurtCooldown=0;this.energy=0;this.overdrive=0;this.burstCount=0;this.lastHeal=0;this.results=null;
+  this.effectRandom=rng(level*3571+seed+921);this.heatEffects=[];this.random=rng(level*7919+seed);this.emit=emit;this.t=0;this.state='playing';this.hp=100;this.score=0;this.kills=0;this.combo=0;this.maxCombo=0;this.lastKill=-10;this.shots=0;this.perfects=0;this.lastBeat=-1;this.cooldown=0;this.repeat=0;this.held=false;this.weapon='wave';this.enemies=[];this.waves=[];this.beams=[];this.bolts=[];this.spawnClock=.65;this.id=0;this.bossSpawned=false;this.bossDefeated=false;this.hurtCooldown=0;this.energy=0;this.overdrive=0;this.burstCount=0;this.lastHeal=0;this.results=null;
  }
  resize(w,h){const oldCy=this.cy;this.w=w;this.h=h;this.cx=w/2;this.cy=h-142;const dy=this.cy-oldCy;for(const wave of this.waves){wave.y+=dy;}for(const bolt of this.bolts){bolt.y+=dy;}}
  setHeld(held,phase){this.held=held;if(held){this.shoot(phase);this.repeat=this.weapon==='wave'?.24:.27;}}
@@ -58,12 +59,12 @@ export class Battle {
   this.emit('fire',{weapon:this.weapon,perfect,boosted});return true;
  }
 
- spawnIntensity(){return this.t<this.arrangement.outroStart?1:Math.max(0,(this.arrangement.spawnEnd-this.t)/(this.arrangement.spawnEnd-this.arrangement.outroStart));}
+ spawnIntensity(){return this.t<this.arrangement.spawnFadeStart?1:Math.max(0,(this.arrangement.spawnEnd-this.t)/(this.arrangement.spawnEnd-this.arrangement.spawnFadeStart));}
  priority(e){return this.distance(e);}
  targetable(e){return e.x>=e.radius&&e.x<=this.w-e.radius&&e.y>=80;}
  distance(e){return Math.hypot(e.x-this.cx,e.y-this.cy);}
  spawn(type,side,at){
-  if(this.enemies.length>=(type==='boss'?240:236))return;
+  if(this.t>=this.arrangement.spawnEnd||this.enemies.length>=(type==='boss'?240:236))return;
   const r=this.random;const p=this.c.p;
   if(!type){const roll=r();type=roll>.92?'shield':this.c.level>=5&&roll>.88?'healer':roll>.79?'bomb':roll<.08&&this.c.level>=10?'tank':roll<.16&&this.c.level>=20?'splitter':roll<.38?'runner':'drone';}
   let base={shield:[32,62,21,9,100],healer:[14,34,17,6,120],bomb:[10,46,16,7,90],drone:[8,49,13,7,65],runner:[6,82,10,7,75],tank:[60,45,22,12,130],splitter:[24,40,18,8,100],mini:[5,62,8,4,30],boss:[this.c.bossHp,12,53,20,1500]}[type];
@@ -87,7 +88,7 @@ export class Battle {
  step(dt,phase){
   if(this.state!=='playing')return;dt=Math.min(dt,.06);this.t+=dt;const nextPhase=sectionAt(this.t,this.arrangement);if(nextPhase!==this.musicPhase){this.musicPhase=nextPhase;this.emit('musicPhase',{phase:nextPhase});}this.cooldown=Math.max(0,this.cooldown-dt);this.overdrive=Math.max(0,this.overdrive-dt);this.hurtCooldown=Math.max(0,this.hurtCooldown-dt);
   if(this.held){this.repeat-=dt;if(this.repeat<=0){this.shoot(phase??this.phase(),false);this.repeat+=(this.weapon==='wave'?.24:.27)*(this.modules.has('tempo')?.85:1);}}
-  if(this.pendingOverdrive&&this.overdrive<=0&&(phase??this.phase())<dt){this.pendingOverdrive=false;this.energy=0;this.overdrive=5.3;this.burstCount++;this.emit('overdrive',{});this.emit('finisher',{kind:this.finisher});if(this.finisher==='gravity'){this.wells.push({x:this.cx,y:this.cy*.55,life:4,r:260,burst:true});}else if(this.finisher==='laser'){for(const e of [...this.enemies])if(this.targetable(e)){this.beams.push({x:e.x,y:0,ex:e.x,ey:this.cy,life:.8,maxLife:.8,boosted:true});this.damage(e,40*this.c.weaponScale,true,'laser');}}else{this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:80,prev:80,maxR:this.h+80,damage:45*this.c.weaponScale,boosted:true,life:2.6,hit:new Set(),speed:600});}}
+  if(this.pendingOverdrive&&this.overdrive<=0&&(phase??this.phase())<dt){this.pendingOverdrive=false;this.energy=0;this.overdrive=5.3;this.burstCount++;this.heatEffects=pickHeatEffects(this.burstCount,this.effectRandom);this.emit('overdrive',{effects:[...this.heatEffects],count:this.burstCount});this.emit('finisher',{kind:this.finisher});if(this.finisher==='gravity'){this.wells.push({x:this.cx,y:this.cy*.55,life:4,r:260,burst:true});}else if(this.finisher==='laser'){for(const e of [...this.enemies])if(this.targetable(e)){this.beams.push({x:e.x,y:0,ex:e.x,ey:this.cy,life:.8,maxLife:.8,boosted:true});this.damage(e,40*this.c.weaponScale,true,'laser');}}else{this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:80,prev:80,maxR:this.h+80,damage:45*this.c.weaponScale,boosted:true,life:2.6,hit:new Set(),speed:600});}}
   for(const well of this.wells){well.life-=dt;for(const e of this.enemies){if(e.hp<=0||e.boss)continue;const d=Math.hypot(e.x-well.x,e.y-well.y);if(d<well.r&&d>5){const pull=well.burst?3.2:1.6;e.x+=(well.x-e.x)*dt*pull;e.y+=(well.y-e.y)*dt*pull;if(this.modules.has('vortex'))this.damage(e,dt*10*this.c.weaponScale,false,'gravity');}}if(well.burst&&well.life<=0){const radius=well.r+35;this.emit('gravityBurst',{x:well.x,y:well.y,radius});for(const e of [...this.enemies])if(e.hp>0&&Math.hypot(e.x-well.x,e.y-well.y)<radius)this.damage(e,75*this.c.weaponScale,true,'gravity');}}this.wells=this.wells.filter(w=>w.life>0);
   if(this.t-this.lastKill>2.2)this.combo=0;
   if(this.t<this.arrangement.spawnEnd){this.spawnClock-=dt*(this.musicPhase==='climax'?1.2:1)*this.spawnIntensity();if(this.spawnClock<=0){const intro=Math.min(1,this.t/6),g=this.c.group;const count=Math.floor(g)+(this.random()<g%1?1:0);for(let i=0;i<count;i++)this.spawn();this.spawnClock+=this.c.interval/(.65+.35*intro)*(this.c.boss&&this.bossSpawned?.96:1);}}

@@ -1,3 +1,4 @@
+import {HEAT_EFFECTS} from './overheat.mjs';
 import {SwayGesture} from './sway.mjs';
 import {Battle,CHAPTERS,BEAT,VERSION,MODULES} from './engine.mjs';
 import {Soundtrack} from './audio.mjs';
@@ -43,9 +44,9 @@ function onEvent(type,data){
  renderer.event(type,data);
  if(['fire','hurt','bossDown','overdrive'].includes(type))audio.fx(type,data);
  if(type==='perfect'&&save.settings.haptics&&navigator.vibrate)navigator.vibrate(9);
- if(type==='overdrive')banner('火力超载','',900);
+
  if(type==='boss')banner(data.name||'首领来袭','',1200);
- if(type==='finisher'){banner(FINISHERS[data.kind]||'终结技','',900);audio.fx('overdrive');}
+ if(type==='finisher'){banner('过热 · '+(FINISHERS[data.kind]||'终结技'),battle.heatEffects.map(id=>HEAT_EFFECTS.find(e=>e.id===id)?.name).join(' · '),1400);audio.fx('overdrive');}
  if(type==='musicPhase'){updateGroove();if(data.phase==='climax')banner('高潮 · 全炮口开放','',1100);}
  if(type==='climaxHit'){audio.fx('fire',{weapon:battle.weapon,perfect:true});updateGroove();}
  if(type==='climaxBurst'){banner('重拍音爆','',700);audio.fx('overdrive');updateGroove();}
