@@ -1,4 +1,4 @@
-import {CHAPTERS,BEAT,rng,directionalWeight} from './engine.mjs?v=1.7.1';
+import {CHAPTERS,BEAT,rng,directionalWeight} from './engine.mjs?v=1.7.2';
 const TAU=Math.PI*2;
 const SPRITE_KIND={shield:'tank',healer:'splitter',bomb:'drone'};
 function circle(c,x,y,r){c.beginPath();c.arc(x,y,Math.max(0,r),0,TAU);}

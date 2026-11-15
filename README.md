@@ -1,4 +1,4 @@
-# 脉冲防线 / PULSEFRONT 1.7.1
+# 脉冲防线 / PULSEFRONT 1.7.2
 
 Portrait one-button space shooter with100 stages and100 synthesized groove arrangements. Hold to fire; manually hit the beat for bonuses. Move inside the button to add a thick laser or smoothly thickened wave sector; baseline attacks remain active elsewhere.
 
@@ -8,7 +8,7 @@ Early beat streaks build support volley count, damage, speed and penetration. Mi
 
 ## Readable weapon cues
 
-Threats stage on screen for two beats. The lower rhythm capsule recommends wave or laser with a 2–1–now cue; keep the weapon if it is already correct. Matching weapon and beat interrupts the incoming group. Difficulty begins increasing from stage 3. The laser bass slide sounds only on a successful rhythm-enhanced switch, with a short dry cutoff.
+Threats stage on screen for two beats. A first-use swipe demonstration appears inside the main button while the battle clock waits. After completing it, only a faint upward motion appears when a weapon change is useful; side weapon icons never glow as recommendations. The lower rhythm capsule recommends wave or laser with a 2–1–now cue; keep the weapon if it is already correct. Matching weapon and beat interrupts the incoming group. Difficulty begins increasing from stage 3. The laser bass slide sounds only on a successful rhythm-enhanced switch, with a short dry cutoff.
 
 ## New rhythm trial (stages 1–10)
 
