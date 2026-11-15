@@ -1,4 +1,4 @@
-import {Battle} from '../engine.mjs';
+import {Battle} from './legacy-battle.mjs';
 import {getTrack} from '../music.mjs';
 const strategies={holdWave:b=>{b.weapon='wave';b.held=true},holdLaser:b=>{b.weapon='laser';b.held=true},beatTap:b=>{if(b.t%b.beatDuration<1/60)b.shoot()},casualTap:b=>{if(b.t%(.67)<1/60)b.shoot(.3)}};
 let rows=[];

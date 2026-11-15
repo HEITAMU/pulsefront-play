@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {Battle,MODULES,directionalWeight} from '../engine.mjs';
+import {Battle,MODULES,directionalWeight} from './legacy-battle.mjs';
 assert.equal(MODULES.length,12);assert.equal(new Set(MODULES.map(m=>m.id)).size,12);
 function arena(modules=[],level=1){const b=new Battle(level,{modules,width:390,height:844,seed:42});b.spawnClock=1e9;return b;}
 function enemy(b,type='tank',dx=0){return b.spawn(type,0,{x:b.cx+dx,y:b.cy-220});}

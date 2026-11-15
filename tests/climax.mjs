@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {Battle} from '../engine.mjs';
+import {Battle} from './legacy-battle.mjs';
 import {getTrack} from '../music.mjs';
 import {arrangementFor} from '../arrangement.mjs';
 let shortest=Infinity,longest=0;

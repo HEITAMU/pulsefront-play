@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {Battle} from '../engine.mjs';
+import {Battle} from './legacy-battle.mjs';
 import {getTrack} from '../music.mjs';
 const rows=[];
 for(const level of [1,10,25,50,75,100]){

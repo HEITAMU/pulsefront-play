@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {Battle} from '../engine.mjs';
+import {Battle} from './legacy-battle.mjs';
 const b=new Battle(1);b.t=b.c.duration-1;b.overdrive=5;b.wells.push({x:100,y:100,r:40,life:4,burst:true});b.pendingOverdrive=true;b.step(.01,.3);
 assert(b.clearing);assert.equal(b.state,'playing');assert.equal(b.pendingOverdrive,false);const shots=b.shots;b.setHeld(true,0);assert.equal(b.shoot(0),false);assert.equal(b.shots,shots);
 for(let i=0;i<210;i++)b.step(1/60);assert.equal(b.state,'playing');assert(b.overdrive>0);assert(b.wells.length);

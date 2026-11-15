@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {Battle,configFor,BEAT} from '../engine.mjs';
+import {Battle,configFor,BEAT} from './legacy-battle.mjs';
 import {getTrack} from '../music.mjs';
 function run(level,opts={},play=b=>b.held=true){const b=new Battle(level,{tempo:getTrack(level).bpm,modules:['blast','reverb','gravity','vortex'].slice(0,Math.floor(((level-1)%10)/2)),...opts});let steps=0,minHp=100;while(b.state==='playing'&&steps++<9000){play(b);b.step(1/60);minHp=Math.min(minHp,b.hp);assert(b.enemies.length<=240);assert(Number.isFinite(b.hp));}return{b,minHp};}
 let checks=0;function check(name,fn){fn();checks++;console.log('PASS '+name);}

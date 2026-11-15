@@ -15,3 +15,5 @@ await import('./sway.mjs');
 await import('./support.mjs');
 
 await import('./settlement.mjs');
+
+await import('./rhythm-trial.mjs');

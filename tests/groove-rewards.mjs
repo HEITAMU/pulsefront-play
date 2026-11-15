@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {getTrack,STYLES,stepTime,trackFingerprint} from '../music.mjs';
-import {Battle} from '../engine.mjs';
+import {Battle} from './legacy-battle.mjs';
 import {normalizeEconomy,awardClear,awardDouble,buySkin,buyRevive} from '../economy.mjs';
 import {RewardedAds,RewardTransaction,validateAdConfig} from '../ads.mjs';
 const tracks=Array.from({length:100},(_,i)=>getTrack(i+1));

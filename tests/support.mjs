@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {SupportSystem,SUPPORTS,normalizeSupport,equipSupport,claimChallenges,unlockedMotion} from '../support.mjs';
-import {Battle} from '../engine.mjs';
+import {Battle} from './legacy-battle.mjs';
 import {getTrack} from '../music.mjs';
 import {Soundtrack} from '../audio.mjs';
 const profile=normalizeSupport({equipped:{}},100);assert.deepEqual(profile.equipped,['seeker']);equipSupport(profile,'seeker',100,1);assert.equal(profile.equipped.length,1);equipSupport(profile,'bounce',100,1);equipSupport(profile,'bounce',100,0);assert.deepEqual(profile.equipped,['bounce','seeker']);assert.equal(equipSupport(profile,'arc',1,0),false);profile.stats.seeker.groups=12;assert(unlockedMotion(profile,'seeker','fan'));

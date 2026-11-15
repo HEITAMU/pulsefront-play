@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {SwayGesture} from '../sway.mjs';
-import {Battle} from '../engine.mjs';
+import {Battle} from './legacy-battle.mjs';
 const g=new SwayGesture();g.reset(0,0);
 for(const x of [.03,-.02,.04,-.03])assert.equal(g.move(x,.1),null);
 g.move(.3,.2);g.move(.8,.5);assert.equal(g.move(.77,.52),null);

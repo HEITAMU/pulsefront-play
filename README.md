@@ -1,6 +1,12 @@
-# 脉冲防线 / PULSEFRONT 1.6.0
+# 脉冲防线 / PULSEFRONT 1.7.0
 
 Portrait one-button space shooter with100 stages and100 synthesized groove arrangements. Hold to fire; manually hit the beat for bonuses. Move inside the button to add a thick laser or smoothly thickened wave sector; baseline attacks remain active elsewhere.
+
+## New rhythm trial (stages 1–10)
+
+Hold and swipe up to switch weapons without stopping fire. On-beat switches launch an enhanced first shot, limited to one per four beats and sharing beat credit with tapping/sway. Side warnings and tom fills announce beat-driven charges; waves suppress crowds, lasers counter heavy armor. Energy targets drop automatic six-second buffs. Open Rhythm Arsenal → Firepower Workshop to purchase capped permanent upgrades with star dust. Defeats retain kill salvage. Existing progress stays intact; the home trial shortcut opens the first chapter for replay.
+
+See docs/rhythm-v17.md for implementation boundaries and verification.
 
 ## Current gameplay
 

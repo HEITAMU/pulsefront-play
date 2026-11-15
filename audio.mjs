@@ -1,5 +1,6 @@
-import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.6.0';
-import {getTrack,frequency,stepTime} from './music.mjs?v=1.6.0';
+import {cueAt} from './rhythm.mjs?v=1.7.0';
+import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.7.0';
+import {getTrack,frequency,stepTime} from './music.mjs?v=1.7.0';
 export class Soundtrack {
  constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.generation=0;}
  async unlock(){
@@ -77,6 +78,7 @@ export class Soundtrack {
     this.note({...e,velocity:e.velocity*(section==='climax'?1.12:section==='outro'?.75:1)},when);
     if(section==='climax'&&e.role==='bass'&&sub%4===0)this.note({...e,midi:e.midi+12,velocity:e.velocity*.27},when);
    }
+   if(t.level<=10&&sub%4===0){const beat=Math.floor(this.step/4);if(sub===0)this.note({instrument:'kick',midi:0,duration:.15,velocity:.32},when);if(beat%4===2&&cueAt(t.level,beat+2)){this.note({instrument:'tom',midi:53,duration:.09,velocity:.65},when);this.note({instrument:'tom',midi:48,duration:.09,velocity:.65},when+t.beat);}}
    if(section==='build'&&sub%2===0)this.note({instrument:'snare',midi:0,duration:.055,velocity:.15+.3*(elapsed-a.buildStart)/(a.climaxStart-a.buildStart)},when);
    if(section==='climax'&&sub%4===0)this.note({instrument:'kick',midi:0,duration:.18,velocity:.65},when);
    if(section==='climax'&&sub===0){this.hiss(when,.28,.08,5200);this.tone(when,frequency(t.key),.3,.16,'sine');}
@@ -84,6 +86,8 @@ export class Soundtrack {
  }
  fx(type,data={}){
   if(!this.ctx||this.muted)return;const now=this.ctx.currentTime,b=this.effects;
+  if(type==='switch'){const f=frequency(this.track.key+12);if(data.weapon==='wave'){this.tone(now,140,data.perfect?.2:.08,data.perfect?.24:.06,'sine',52,undefined,b);this.air(now,.09,.05,800,b);}else{this.tone(now,f,data.perfect?.18:.07,data.perfect?.12:.045,'triangle',f*2,1500,b);this.air(now,.08,.035,1600,b);}}
+  if(type==='pickup')this.tone(now,frequency(this.track.key+12),.2,.09,'triangle',frequency(this.track.key+24),1300,b);
   if(type==='press'){this.tone(now,115,.09,.15,'sine',62,undefined,b);this.tone(now,260,.045,.035,'triangle',170,700,b);this.air(now,.055,.025,900,b);}
   if(type==='strong'){this.tone(now,155,.12,.18,'sine',72,undefined,b);this.tone(now,390,.035,.045,'triangle',230,1000,b);this.air(now,.045,.06,1600,b);}
   if(type==='support'){const f=frequency(this.track.key+12);this.tone(now,f,.16,.065,'triangle',f*2,1200,b);this.air(now,.11,.035,1100,b);}
