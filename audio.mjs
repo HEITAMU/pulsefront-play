@@ -1,6 +1,6 @@
-import {cueAt} from './rhythm.mjs?v=1.7.0';
-import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.7.0';
-import {getTrack,frequency,stepTime} from './music.mjs?v=1.7.0';
+import {cueAt} from './rhythm.mjs?v=1.7.1';
+import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.7.1';
+import {getTrack,frequency,stepTime} from './music.mjs?v=1.7.1';
 export class Soundtrack {
  constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.generation=0;}
  async unlock(){
@@ -21,10 +21,10 @@ export class Soundtrack {
   if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(16,endFreq),at+Math.min(duration,.16));
   if(options.bend){o.frequency.setValueAtTime(freq*.94,at);o.frequency.exponentialRampToValueAtTime(freq,at+.065);}
   if(options.detune)o.detune.value=options.detune;
-  const attack=Math.min(duration*.3,options.attack||.004);g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(Math.max(.0002,gain),at+attack);g.gain.exponentialRampToValueAtTime(.0001,at+duration);o.connect(g);
+  const attack=Math.min(duration*.3,options.attack||.004);g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(Math.max(.0002,gain),at+attack);g.gain.exponentialRampToValueAtTime(.0001,at+duration);if(options.hardStop)g.gain.setValueAtTime(0,at+duration+.002);o.connect(g);
   let tail=g;if(filterFreq){const f=this.ctx.createBiquadFilter();f.type=options.filterType||'lowpass';f.Q.value=options.q||.65;f.frequency.setValueAtTime(filterFreq,at);if(options.wah)f.frequency.exponentialRampToValueAtTime(Math.max(160,filterFreq*.3),at+duration);g.connect(f);tail=f;cleanup.push(f);}
   if(options.pan&&this.ctx.createStereoPanner){const pan=this.ctx.createStereoPanner();pan.pan.value=options.pan;tail.connect(pan);tail=pan;cleanup.push(pan);}
-  tail.connect(bus||this.music);o.start(at);o.stop(at+duration+.025);this.nodes.add(o);o.onended=()=>{this.nodes.delete(o);o.disconnect();g.disconnect();for(const n of cleanup)n.disconnect();};
+  tail.connect(bus||this.music);o.start(at);o.stop(at+duration+(options.hardStop?.003:.025));this.nodes.add(o);o.onended=()=>{this.nodes.delete(o);o.disconnect();g.disconnect();for(const n of cleanup)n.disconnect();};
  }
  hiss(at,duration,gain,hz,bus=this.music){if(!this.ctx)return;const source=this.ctx.createBufferSource(),filter=this.ctx.createBiquadFilter(),g=this.ctx.createGain();source.buffer=this.noise;filter.type='highpass';filter.frequency.value=hz;g.gain.setValueAtTime(Math.max(.0001,gain),at);g.gain.exponentialRampToValueAtTime(.0001,at+duration);source.connect(filter);filter.connect(g);g.connect(bus||this.music);source.start(at);source.stop(at+duration);this.nodes.add(source);source.onended=()=>{this.nodes.delete(source);source.disconnect();filter.disconnect();g.disconnect();};}
  note(event,at){
@@ -86,7 +86,7 @@ export class Soundtrack {
  }
  fx(type,data={}){
   if(!this.ctx||this.muted)return;const now=this.ctx.currentTime,b=this.effects;
-  if(type==='switch'){const f=frequency(this.track.key+12);if(data.weapon==='wave'){this.tone(now,140,data.perfect?.2:.08,data.perfect?.24:.06,'sine',52,undefined,b);this.air(now,.09,.05,800,b);}else{this.tone(now,f,data.perfect?.18:.07,data.perfect?.12:.045,'triangle',f*2,1500,b);this.air(now,.08,.035,1600,b);}}
+  if(type==='switch'){const f=frequency(this.track.key+12);if(data.weapon==='wave'){this.tone(now,140,data.perfect?.2:.08,data.perfect?.24:.06,'sine',52,undefined,b);this.air(now,.09,.05,800,b);}else if(data.perfect){const bass=Math.max(49,Math.min(82,frequency(this.track.key)));this.tone(now,bass*2.4,.09,data.perfect?.25:.18,'triangle',bass,550,b,{hardStop:true,attack:.003});this.tone(now,bass*1.2,.075,data.perfect?.12:.085,'sine',bass*.7,undefined,b,{hardStop:true,attack:.003});}}
   if(type==='pickup')this.tone(now,frequency(this.track.key+12),.2,.09,'triangle',frequency(this.track.key+24),1300,b);
   if(type==='press'){this.tone(now,115,.09,.15,'sine',62,undefined,b);this.tone(now,260,.045,.035,'triangle',170,700,b);this.air(now,.055,.025,900,b);}
   if(type==='strong'){this.tone(now,155,.12,.18,'sine',72,undefined,b);this.tone(now,390,.035,.045,'triangle',230,1000,b);this.air(now,.045,.06,1600,b);}

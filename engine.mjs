@@ -1,8 +1,8 @@
-import {RhythmDirector} from './rhythm.mjs?v=1.7.0';
-import {normalizeGrowth} from './growth.mjs?v=1.7.0';
-import {SupportSystem} from './support.mjs?v=1.7.0';
-import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.7.0';
-export const VERSION='1.7.0';
+import {RhythmDirector} from './rhythm.mjs?v=1.7.1';
+import {normalizeGrowth} from './growth.mjs?v=1.7.1';
+import {SupportSystem} from './support.mjs?v=1.7.1';
+import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.7.1';
+export const VERSION='1.7.1';
 export const MODULES=[{"id": "echo", "name": "回旋音浪", "description": "音浪到达远端后返回，再造成一次伤害。", "family": "wave"}, {"id": "reverb", "name": "宽幅共鸣", "description": "音浪伤害提高25%，命中范围加宽。", "family": "wave"}, {"id": "tempo", "name": "急速脉冲", "description": "音浪速度提高30%，长按射速提高15%。", "family": "wave"}, {"id": "prism", "name": "折射镜阵", "description": "激光命中后折向附近另一名敌人。", "family": "laser"}, {"id": "focus", "name": "聚焦透镜", "description": "激光伤害提高30%。", "family": "laser"}, {"id": "pierce", "name": "穿甲光束", "description": "激光忽略护盾，额外发射一束。", "family": "laser"}, {"id": "blast", "name": "连锁爆破", "description": "击杀引发小范围爆炸，可连锁触发。", "family": "blast"}, {"id": "chain", "name": "震荡扩散", "description": "爆炸范围提高45%，爆炸伤害提高20%。", "family": "blast"}, {"id": "shrapnel", "name": "碎片弹头", "description": "每次开火额外发射两枚追踪弹。", "family": "blast"}, {"id": "gravity", "name": "引力核心", "description": "每四次攻击生成聚怪黑洞。", "family": "gravity"}, {"id": "orbit", "name": "轨道牵引", "description": "每次击杀回复少量超载能量。", "family": "gravity"}, {"id": "vortex", "name": "坍缩涡流", "description": "黑洞持续更久，并持续伤害其中敌人。", "family": "gravity"}];
 export function directionalWeight(angle,aim){if(aim==null)return 0;const delta=Math.atan2(Math.sin(angle-aim),Math.cos(angle-aim));return Math.abs(delta)>=.7?0:(1+Math.cos(Math.PI*delta/.7))/2;}
 export const BPM=116;
@@ -42,7 +42,7 @@ export class Battle {
  shoot(phase=this.phase(),manual=true){
   if(this.state!=='playing'||this.clearing||this.cooldown>0)return false;
   const beatNumber=Math.round((this.rhythmTime??this.t)/this.beatDuration);const distance=Math.min(phase,this.beatDuration-phase);const perfect=manual&&distance<=.125&&beatNumber!==this.lastBeat;
-  if(perfect){this.perfects++;this.lastBeat=beatNumber;this.energy=Math.min(100,this.energy+9);this.emit('perfect',{x:this.cx,y:this.cy-130});this.support.beat(beatNumber);if(this.musicPhase==='climax'){this.climaxHits++;this.emit('climaxHit',{count:this.climaxHits});if(this.climaxHits>=4){this.climaxHits=0;this.climaxBursts++;this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:80,prev:80,maxR:this.h+80,damage:55*this.c.weaponScale,boosted:true,life:2.6,hit:new Set(),speed:650});this.emit('climaxBurst',{count:this.climaxBursts});}}}else{this.energy=Math.min(100,this.energy+2.4);}
+  if(perfect){this.perfects++;this.lastBeat=beatNumber;this.energy=Math.min(100,this.energy+9);this.emit('perfect',{x:this.cx,y:this.cy-130});this.support.beat(beatNumber);this.director?.resolveBeat(beatNumber,this.weapon);if(this.musicPhase==='climax'){this.climaxHits++;this.emit('climaxHit',{count:this.climaxHits});if(this.climaxHits>=4){this.climaxHits=0;this.climaxBursts++;this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:80,prev:80,maxR:this.h+80,damage:55*this.c.weaponScale,boosted:true,life:2.6,hit:new Set(),speed:650});this.emit('climaxBurst',{count:this.climaxBursts});}}}else{this.energy=Math.min(100,this.energy+2.4);}
   if(this.energy>=100&&this.overdrive<=0)this.pendingOverdrive=true;
   const boosted=this.overdrive>0, power=(perfect?2.2:1)*(boosted?1.45:1)*(this.musicPhase==='climax'?1.35:1)*this.c.weaponScale*(1+this.growth.power*.12)*(this.switchPower?1.6:1)*(this.director?.active('pierce')?1.35:1);
   this.shots++;this.cooldown=.105;
@@ -126,7 +126,7 @@ export class Battle {
   }
   else if(!this.clearing&&this.t>=Math.min(89.9,this.c.duration+7)){this.timedOut=true;this.finish(false);}
  }
- finish(win){if(this.state!=='playing')return;this.state=win?'won':'lost';this.held=false;this.results={win,switchHits:this.switchHits,supportGroups:this.support.groups,supportClimax:this.support.climaxGroups,supportKinds:this.support.equipped.length,level:this.c.level,hp:Math.ceil(this.hp),score:this.score,kills:this.kills,perfects:this.perfects,shots:this.shots,maxCombo:this.maxCombo,seconds:Math.round(this.t),stars:win?(this.hp>=65?3:this.hp>=30?2:1):0};this.emit('finish',this.results);}
+ finish(win){if(this.state!=='playing')return;this.state=win?'won':'lost';this.held=false;this.results={win,supportRank:this.support.rank,switchHits:this.switchHits,supportGroups:this.support.groups,supportClimax:this.support.climaxGroups,supportKinds:this.support.equipped.length,level:this.c.level,hp:Math.ceil(this.hp),score:this.score,kills:this.kills,perfects:this.perfects,shots:this.shots,maxCombo:this.maxCombo,seconds:Math.round(this.t),stars:win?(this.hp>=65?3:this.hp>=30?2:1):0};this.emit('finish',this.results);}
  revive(){if(this.state!=='lost'||this.revived||this.timedOut)return false;this.revived=true;this.hp=60;this.state='playing';this.results=null;this.held=false;this.hurtCooldown=3;this.cooldown=0;this.repeat=0;this.enemies=this.enemies.filter(e=>e.boss||this.distance(e)>230);this.emit('revive',{});return true;}
  snapshot(){return{level:this.c.level,state:this.state,time:this.t,hp:this.hp,weapon:this.weapon,enemies:this.enemies.length,shots:this.shots,kills:this.kills,perfects:this.perfects,score:this.score,musicPhase:this.musicPhase,switchHits:this.switchHits,switchReady:this.switchReady(),buff:this.director?.buff,climaxHits:this.climaxHits,climaxBursts:this.climaxBursts};}
 }
