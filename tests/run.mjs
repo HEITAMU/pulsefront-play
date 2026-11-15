@@ -13,3 +13,5 @@ await import('./render-budget.mjs');
 await import('./sway.mjs');
 
 await import('./overheat.mjs');
+
+await import('./settlement.mjs');

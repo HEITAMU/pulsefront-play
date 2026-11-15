@@ -1,11 +1,11 @@
-import {HEAT_EFFECTS} from './overheat.mjs?v=1.5.0';
-import {SwayGesture} from './sway.mjs?v=1.5.0';
-import {Battle,CHAPTERS,BEAT,VERSION,MODULES} from './engine.mjs?v=1.5.0';
-import {Soundtrack} from './audio.mjs?v=1.5.0';
-import {Renderer} from './renderer.mjs?v=1.5.0';
-import {getTrack,STYLES} from './music.mjs?v=1.5.0';
-import {SKINS,normalizeEconomy,awardClear,awardDouble,buySkin,buyRevive,REVIVE_COST} from './economy.mjs?v=1.5.0';
-import {RewardedAds} from './ads.mjs?v=1.5.0';
+import {HEAT_EFFECTS} from './overheat.mjs?v=1.5.1';
+import {SwayGesture} from './sway.mjs?v=1.5.1';
+import {Battle,CHAPTERS,BEAT,VERSION,MODULES} from './engine.mjs?v=1.5.1';
+import {Soundtrack} from './audio.mjs?v=1.5.1';
+import {Renderer} from './renderer.mjs?v=1.5.1';
+import {getTrack,STYLES} from './music.mjs?v=1.5.1';
+import {SKINS,normalizeEconomy,awardClear,awardDouble,buySkin,buyRevive,REVIVE_COST} from './economy.mjs?v=1.5.1';
+import {RewardedAds} from './ads.mjs?v=1.5.1';
 const $=id=>document.getElementById(id);
 const app=$('app'),canvas=$('space'),renderer=new Renderer(canvas),audio=new Soundtrack(),ads=new RewardedAds();
 const sway=new SwayGesture();let firePointer=null;
@@ -51,10 +51,11 @@ function onEvent(type,data){
  if(type==='climaxHit'){audio.fx('fire',{weapon:battle.weapon,perfect:true});updateGroove();}
  if(type==='climaxBurst'){banner('重拍音爆','',700);audio.fx('overdrive');updateGroove();}
  if(type==='heal')renderer.label('护盾 +8',battle.cx,battle.cy-122,'#baffc6',12,.8);
+ if(type==='cleared'){resetInput();banner('星域已清','',3500);}
  if(type==='finish'){
   mode='result';app.classList.remove('climax-active');resetInput();audio.finish(data.win);
   if(data.win){activeRun.receipt=awardClear(save.economy,activeRun.id,data.level,data.stars,!save.stars[data.level]);save.stars[data.level]=Math.max(save.stars[data.level]||0,data.stars);save.best[data.level]=Math.max(save.best[data.level]||0,data.score);save.unlocked=Math.min(100,Math.max(save.unlocked,data.level+1));persist();}
-  resultTimer=setTimeout(()=>result(data),650);
+  resultTimer=setTimeout(()=>result(data),data.win?300:650);
  }
 }
 function result(r,notice=''){
@@ -142,7 +143,7 @@ window.addEventListener('keyup',e=>{if(e.code==='Space'){e.preventDefault();rese
 window.addEventListener('blur',()=>{if(mode==='playing')pauseGame();else resetInput();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='playing')pauseGame();});
 $('modal').addEventListener('keydown',e=>{if(e.key!=='Tab')return;const buttons=[...$('panel').querySelectorAll('button:not(:disabled)')];const first=buttons[0],last=buttons.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}});
-function updateHud(){if(!battle)return;updateGroove();const b=battle;ui.score.textContent=String(b.score).padStart(6,'0');ui.hp.textContent=Math.ceil(b.hp);ui.shield.style.width=b.hp+'%';ui.shield.style.background=b.hp<30?'#ff8b91':'#9cf4d3';ui.stageFill.style.width=Math.min(100,b.t/b.c.duration*100)+'%';ui.time.textContent=b.t<b.c.duration?Math.ceil(b.c.duration-b.t)+'s':'清场';ui.combo.hidden=b.combo<3;ui.comboNum.textContent=b.combo;const over=b.overdrive>0;app.classList.toggle('overdrive',over);ui.charge.style.width=(over?b.overdrive/5.3*100:b.energy)+'%';ui.chargeVal.textContent=over?Math.ceil(b.overdrive)+'s':Math.floor(b.energy)+'%';ui.chargeLabel.textContent=over?'火力超载':'超载能量';const boss=b.enemies.find(e=>e.boss);ui.boss.hidden=!boss;if(boss){ui.bossFill.style.width=Math.max(0,boss.hp/boss.maxHp*100)+'%';ui.bossPercent.textContent=Math.ceil(boss.hp/boss.maxHp*100)+'%';}}
+function updateHud(){if(!battle)return;updateGroove();const b=battle;ui.score.textContent=String(b.score).padStart(6,'0');ui.hp.textContent=Math.ceil(b.hp);ui.shield.style.width=b.hp+'%';ui.shield.style.background=b.hp<30?'#ff8b91':'#9cf4d3';ui.stageFill.style.width=Math.min(100,b.t/b.c.duration*100)+'%';ui.time.textContent=b.clearing?'已清场':b.t<b.c.duration?Math.ceil(b.c.duration-b.t)+'s':'清场';ui.combo.hidden=b.combo<3;ui.comboNum.textContent=b.combo;const over=b.overdrive>0;app.classList.toggle('overdrive',over);ui.charge.style.width=(over?b.overdrive/5.3*100:b.energy)+'%';ui.chargeVal.textContent=over?Math.ceil(b.overdrive)+'s':Math.floor(b.energy)+'%';ui.chargeLabel.textContent=over?'火力超载':'超载能量';const boss=b.enemies.find(e=>e.boss);ui.boss.hidden=!boss;if(boss){ui.bossFill.style.width=Math.max(0,boss.hp/boss.maxHp*100)+'%';ui.bossPercent.textContent=Math.ceil(boss.hp/boss.maxHp*100)+'%';}}
 function frame(now){const dt=Math.min((now-(previousFrame||now))/1000,.05);previousFrame=now;visualTime+=dt;if(mode==='playing'&&battle){const phase=audio.phase(battle.phase());battle.rhythmTime=audio.position(battle.t);battle.step(dt,phase);const beatIndex=Math.floor((battle.rhythmTime+battle.beatDuration*.08)/battle.beatDuration)%4;const lit=Math.min(phase,battle.beatDuration-phase)<.13;groovePanel.classList.toggle('on-beat',lit);ui.dots.forEach((dot,i)=>dot.classList.toggle('on',lit&&i===beatIndex));hudClock+=dt;if(hudClock>.065){hudClock=0;updateHud();}}if(mode==='home'||mode==='playing'||mode==='result')renderer.update(dt);renderer.render(battle,visualTime,audio.phase(battle?.phase()||0),mode==='home');requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 // Read-only diagnostics for verification and future fault reports.

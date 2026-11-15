@@ -1,1 +1,1 @@
-{"name": "pulsefront-play", "version": "1.5.0", "type": "module", "scripts": {"test": "node tests/run.mjs"}}
+{"name": "pulsefront-play", "version": "1.5.1", "type": "module", "scripts": {"test": "node tests/run.mjs"}}

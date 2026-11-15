@@ -1,6 +1,6 @@
-import {pickHeatEffects} from './overheat.mjs?v=1.5.0';
-import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.5.0';
-export const VERSION='1.5.0';
+import {pickHeatEffects} from './overheat.mjs?v=1.5.1';
+import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.5.1';
+export const VERSION='1.5.1';
 export const MODULES=[{"id": "echo", "name": "回旋音浪", "description": "音浪到达远端后返回，再造成一次伤害。", "family": "wave"}, {"id": "reverb", "name": "宽幅共鸣", "description": "音浪伤害提高25%，命中范围加宽。", "family": "wave"}, {"id": "tempo", "name": "急速脉冲", "description": "音浪速度提高30%，长按射速提高15%。", "family": "wave"}, {"id": "prism", "name": "折射镜阵", "description": "激光命中后折向附近另一名敌人。", "family": "laser"}, {"id": "focus", "name": "聚焦透镜", "description": "激光伤害提高30%。", "family": "laser"}, {"id": "pierce", "name": "穿甲光束", "description": "激光忽略护盾，额外发射一束。", "family": "laser"}, {"id": "blast", "name": "连锁爆破", "description": "击杀引发小范围爆炸，可连锁触发。", "family": "blast"}, {"id": "chain", "name": "震荡扩散", "description": "爆炸范围提高45%，爆炸伤害提高20%。", "family": "blast"}, {"id": "shrapnel", "name": "碎片弹头", "description": "每次开火额外发射两枚追踪弹。", "family": "blast"}, {"id": "gravity", "name": "引力核心", "description": "每四次攻击生成聚怪黑洞。", "family": "gravity"}, {"id": "orbit", "name": "轨道牵引", "description": "每次击杀回复少量超载能量。", "family": "gravity"}, {"id": "vortex", "name": "坍缩涡流", "description": "黑洞持续更久，并持续伤害其中敌人。", "family": "gravity"}];
 export function directionalWeight(angle,aim){if(aim==null)return 0;const delta=Math.atan2(Math.sin(angle-aim),Math.cos(angle-aim));return Math.abs(delta)>=.7?0:(1+Math.cos(Math.PI*delta/.7))/2;}
 export const BPM=116;
@@ -19,7 +19,7 @@ export class Battle {
   this.effectRandom=rng(level*3571+seed+921);this.heatEffects=[];this.random=rng(level*7919+seed);this.emit=emit;this.t=0;this.state='playing';this.hp=100;this.score=0;this.kills=0;this.combo=0;this.maxCombo=0;this.lastKill=-10;this.shots=0;this.perfects=0;this.lastBeat=-1;this.cooldown=0;this.repeat=0;this.held=false;this.weapon='wave';this.enemies=[];this.waves=[];this.beams=[];this.bolts=[];this.spawnClock=.65;this.id=0;this.bossSpawned=false;this.bossDefeated=false;this.hurtCooldown=0;this.energy=0;this.overdrive=0;this.burstCount=0;this.lastHeal=0;this.results=null;
  }
  resize(w,h){const oldCy=this.cy;this.w=w;this.h=h;this.cx=w/2;this.cy=h-142;const dy=this.cy-oldCy;for(const wave of this.waves){wave.y+=dy;}for(const bolt of this.bolts){bolt.y+=dy;}}
- setHeld(held,phase){this.held=held;if(held){this.shoot(phase);this.repeat=this.weapon==='wave'?.24:.27;}}
+ setHeld(held,phase){if(this.clearing)return;this.held=held;if(held){this.shoot(phase);this.repeat=this.weapon==='wave'?.24:.27;}}
  swayBeat(time){
   if(!this.held||this.state!=='playing'||!Number.isFinite(time))return false;
   const beat=Math.round(time/this.beatDuration),phase=((time%this.beatDuration)+this.beatDuration)%this.beatDuration;
@@ -30,7 +30,7 @@ export class Battle {
  }
  phase(){return((this.t%this.beatDuration)+this.beatDuration)%this.beatDuration;}
  shoot(phase=this.phase(),manual=true){
-  if(this.state!=='playing'||this.cooldown>0)return false;
+  if(this.state!=='playing'||this.clearing||this.cooldown>0)return false;
   const beatNumber=Math.round((this.rhythmTime??this.t)/this.beatDuration);const distance=Math.min(phase,this.beatDuration-phase);const perfect=manual&&distance<=.125&&beatNumber!==this.lastBeat;
   if(perfect){this.perfects++;this.lastBeat=beatNumber;this.energy=Math.min(100,this.energy+9);this.emit('perfect',{x:this.cx,y:this.cy-130});if(this.musicPhase==='climax'){this.climaxHits++;this.emit('climaxHit',{count:this.climaxHits});if(this.climaxHits>=4){this.climaxHits=0;this.climaxBursts++;this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:80,prev:80,maxR:this.h+80,damage:55*this.c.weaponScale,boosted:true,life:2.6,hit:new Set(),speed:650});this.emit('climaxBurst',{count:this.climaxBursts});}}}else{this.energy=Math.min(100,this.energy+2.4);}
   if(this.energy>=100&&this.overdrive<=0)this.pendingOverdrive=true;
@@ -104,8 +104,15 @@ export class Battle {
   for(const b of this.bolts){b.life-=dt;let target=this.enemies.find(e=>e.id===b.target&&e.hp>0&&this.targetable(e));if(!target){target=this.enemies.find(e=>e.hp>0&&this.targetable(e));if(target)b.target=target.id;}if(target){b.angle=Math.atan2(target.y-b.y,target.x-b.x);b.x+=Math.cos(b.angle)*600*dt;b.y+=Math.sin(b.angle)*600*dt;if(Math.hypot(target.x-b.x,target.y-b.y)<target.radius+15){this.damage(target,b.damage);b.life=0;}}else b.life=0;}
   this.enemies=this.enemies.filter(e=>e.hp>0);this.waves=this.waves.filter(w=>w.life>0);this.bolts=this.bolts.filter(b=>b.life>0);this.beams=this.beams.filter(b=>(b.life-=dt)>0);
   if(this.hp<=0)this.finish(false);
-  else if(this.t>=this.c.duration&&this.enemies.length===0&&(!this.c.boss||this.bossDefeated))this.finish(true);
-  else if(this.t>=Math.min(89.9,this.c.duration+7)){this.timedOut=true;this.finish(false);}
+  else if(this.t>=this.arrangement.spawnEnd&&this.enemies.length===0&&(!this.c.boss||this.bossDefeated)){
+   if(!this.clearing){
+    this.clearing=true;this.held=false;this.pendingOverdrive=false;this.clearStarted=this.t;
+    const tail=Math.max(0,...this.wells.map(w=>w.life+.85),...this.waves.map(w=>w.life+.4),...this.beams.map(b=>b.life+.4),this.overdrive+.8);
+    this.settleUntil=Math.max(this.c.duration,this.t+3.5,this.t+tail);this.emit('cleared',{});
+   }
+   if(this.t>=this.settleUntil)this.finish(true);
+  }
+  else if(!this.clearing&&this.t>=Math.min(89.9,this.c.duration+7)){this.timedOut=true;this.finish(false);}
  }
  finish(win){if(this.state!=='playing')return;this.state=win?'won':'lost';this.held=false;this.results={win,level:this.c.level,hp:Math.ceil(this.hp),score:this.score,kills:this.kills,perfects:this.perfects,shots:this.shots,maxCombo:this.maxCombo,seconds:Math.round(this.t),stars:win?(this.hp>=65?3:this.hp>=30?2:1):0};this.emit('finish',this.results);}
  revive(){if(this.state!=='lost'||this.revived||this.timedOut)return false;this.revived=true;this.hp=60;this.state='playing';this.results=null;this.held=false;this.hurtCooldown=3;this.cooldown=0;this.repeat=0;this.enemies=this.enemies.filter(e=>e.boss||this.distance(e)>230);this.emit('revive',{});return true;}
