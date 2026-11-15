@@ -1,5 +1,5 @@
-import {HeatRenderer} from './overheat.mjs';
-import {CHAPTERS,BEAT,rng,directionalWeight} from './engine.mjs';
+import {HeatRenderer} from './overheat.mjs?v=1.5.0';
+import {CHAPTERS,BEAT,rng,directionalWeight} from './engine.mjs?v=1.5.0';
 const TAU=Math.PI*2;
 const SPRITE_KIND={shield:'tank',healer:'splitter',bomb:'drone'};
 function circle(c,x,y,r){c.beginPath();c.arc(x,y,Math.max(0,r),0,TAU);}
