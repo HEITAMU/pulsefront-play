@@ -1,5 +1,5 @@
-import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.5.1';
-import {getTrack,frequency,stepTime} from './music.mjs?v=1.5.1';
+import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.6.0';
+import {getTrack,frequency,stepTime} from './music.mjs?v=1.6.0';
 export class Soundtrack {
  constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.generation=0;}
  async unlock(){
@@ -84,9 +84,14 @@ export class Soundtrack {
  }
  fx(type,data={}){
   if(!this.ctx||this.muted)return;const now=this.ctx.currentTime,b=this.effects;
-  if(type==='fire'){this.tone(now,data.weapon==='laser'?560:180,.065,.03,'triangle',data.weapon==='laser'?110:65,undefined,b);if(data.perfect)this.tone(now,880,.10,.045,'sine',660,undefined,b);}
-  if(type==='hurt'){this.hiss(now,.13,.15,300,b);this.tone(now,85,.18,.13,'sawtooth',35,350,b);}
-  if(type==='bossDown'||type==='overdrive'){this.tone(now,55,.4,.19,'sawtooth',28,700,b);[220,330,440,660].forEach((f,i)=>this.tone(now+i*.07,f,.2,.07,'triangle',undefined,undefined,b));}
-  if(type==='ui')this.tone(now,540,.065,.045,'sine',840,undefined,b);
+  if(type==='press'){this.tone(now,115,.09,.15,'sine',62,undefined,b);this.tone(now,260,.045,.035,'triangle',170,700,b);this.air(now,.055,.025,900,b);}
+  if(type==='strong'){this.tone(now,155,.12,.18,'sine',72,undefined,b);this.tone(now,390,.035,.045,'triangle',230,1000,b);this.air(now,.045,.06,1600,b);}
+  if(type==='support'){const f=frequency(this.track.key+12);this.tone(now,f,.16,.065,'triangle',f*2,1200,b);this.air(now,.11,.035,1100,b);}
+  if(type==='release')this.air(now,.06,.018,650,b);
+  if(type==='fire')this.tone(now,data.weapon==='laser'?360:150,.055,.023,'triangle',data.weapon==='laser'?130:65,850,b);
+  if(type==='hurt'){this.air(now,.13,.15,500,b);this.tone(now,85,.18,.13,'sawtooth',35,350,b);}
+  if(type==='bossDown'||type==='overdrive'){this.tone(now,90,.32,.19,'sine',34,undefined,b);this.air(now,.22,.13,1100,b);this.tone(now,240,.13,.07,'triangle',100,650,b);}
+  if(type==='ui'){this.tone(now,230,.065,.075,'triangle',140,700,b);this.air(now,.03,.02,900,b);}
  }
+ air(at,duration,gain,hz,bus){if(!this.ctx||this.nodes.size>180)return;const source=this.ctx.createBufferSource(),filter=this.ctx.createBiquadFilter(),g=this.ctx.createGain();source.buffer=this.noise;filter.type='bandpass';filter.frequency.value=hz;filter.Q.value=.7;g.gain.setValueAtTime(.0001,at);g.gain.linearRampToValueAtTime(gain,at+.004);g.gain.exponentialRampToValueAtTime(.0001,at+duration);source.connect(filter);filter.connect(g);g.connect(bus);source.start(at);source.stop(at+duration);this.nodes.add(source);source.onended=()=>{this.nodes.delete(source);source.disconnect();filter.disconnect();g.disconnect();};}
 }

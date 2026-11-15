@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {SupportSystem,SUPPORTS,normalizeSupport,equipSupport,claimChallenges,unlockedMotion} from '../support.mjs';
+import {Battle} from '../engine.mjs';
+import {getTrack} from '../music.mjs';
+import {Soundtrack} from '../audio.mjs';
+const profile=normalizeSupport({equipped:{}},100);assert.deepEqual(profile.equipped,['seeker']);equipSupport(profile,'seeker',100,1);assert.equal(profile.equipped.length,1);equipSupport(profile,'bounce',100,1);equipSupport(profile,'bounce',100,0);assert.deepEqual(profile.equipped,['bounce','seeker']);assert.equal(equipSupport(profile,'arc',1,0),false);profile.stats.seeker.groups=12;assert(unlockedMotion(profile,'seeker','fan'));
+const coins={coins:0},r={win:true,level:20,hp:90,supportGroups:12,supportClimax:6,supportKinds:2};assert.equal(claimChallenges(profile,r,coins).length,3);assert.equal(claimChallenges(profile,r,coins).length,0);assert.equal(coins.coins,360);
+const b=new Battle(1),fx=b.support;for(let i=0;i<9;i++)fx.beat(i);assert.equal(fx.rank,3);assert.equal(fx.queue.length,6);fx.beat(8);assert.equal(fx.rank,3);fx.beat(12);assert.equal(fx.streak,1);fx.beat(14);fx.beat(15);assert.equal(fx.rank,4);assert.equal(fx.queue.length,10);
+for(const s of SUPPORTS){const battle=new Battle(1,{supports:[s.id]});battle.enemies=[];for(let x=60;x<360;x+=30)for(let y=100;y<550;y+=40)battle.spawn('tank',0,{x,y});const sys=battle.support;for(let i=0;i<9;i++)sys.beat(i);const hp=battle.enemies.reduce((n,e)=>n+e.hp,0);for(let i=0;i<240;i++){battle.t+=1/60;sys.update(1/60);}assert(battle.enemies.reduce((n,e)=>n+e.hp,0)<hp,s.id+' deals damage');assert(sys.shots.length<=140);battle.clearing=true;sys.update(.01);assert.equal(sys.queue.length,0);}
+for(const type of ['press','strong','support','release','ui']){const s=new Soundtrack(),calls=[];s.ctx={currentTime:0};s.effects={};s.tone=(...args)=>calls.push(args);s.air=(...args)=>calls.push(args);s.fx(type,{rank:999});assert(calls.length>0);assert(calls.every(a=>Number.isFinite(a[1])));}
+for(let level=1;level<=100;level++){const b=new Battle(level,{tempo:getTrack(level).bpm,modules:[],seed:124});let steps=0;while(b.state==='playing'&&steps++<9000){b.held=true;b.step(1/60);}assert.equal(b.state,'won','no-upgrade hold stage '+level);assert.equal(b.support.rank,0);}
+console.log('PASS support progression, six damage types, equip limits, mastery, once-only rewards, button audio and 100 no-upgrade hold stages');
