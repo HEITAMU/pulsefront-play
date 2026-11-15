@@ -1,4 +1,4 @@
-# 脉冲防线 / PULSEFRONT 1.7.2
+# 脉冲防线 / PULSEFRONT 1.7.3
 
 Portrait one-button space shooter with100 stages and100 synthesized groove arrangements. Hold to fire; manually hit the beat for bonuses. Move inside the button to add a thick laser or smoothly thickened wave sector; baseline attacks remain active elsewhere.
 

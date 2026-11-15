@@ -1,13 +1,13 @@
-import {SwitchGesture} from './rhythm.mjs?v=1.7.2';
-import {UPGRADES,normalizeGrowth,upgradeCost,buyUpgrade,salvage} from './growth.mjs?v=1.7.2';
-import {SUPPORTS,MOTIONS,CHALLENGES,normalizeSupport,unlockedMotion,equipSupport,claimChallenges,SupportSystem} from './support.mjs?v=1.7.2';
-import {SwayGesture} from './sway.mjs?v=1.7.2';
-import {Battle,CHAPTERS,BEAT,VERSION} from './engine.mjs?v=1.7.2';
-import {Soundtrack} from './audio.mjs?v=1.7.2';
-import {Renderer} from './renderer.mjs?v=1.7.2';
-import {getTrack,STYLES} from './music.mjs?v=1.7.2';
-import {SKINS,normalizeEconomy,awardClear,awardDouble,buySkin,buyRevive,REVIVE_COST} from './economy.mjs?v=1.7.2';
-import {RewardedAds} from './ads.mjs?v=1.7.2';
+import {SwitchGesture} from './rhythm.mjs?v=1.7.3';
+import {UPGRADES,normalizeGrowth,upgradeCost,buyUpgrade,salvage} from './growth.mjs?v=1.7.3';
+import {SUPPORTS,MOTIONS,CHALLENGES,normalizeSupport,unlockedMotion,equipSupport,claimChallenges,SupportSystem} from './support.mjs?v=1.7.3';
+import {SwayGesture} from './sway.mjs?v=1.7.3';
+import {Battle,CHAPTERS,BEAT,VERSION} from './engine.mjs?v=1.7.3';
+import {Soundtrack} from './audio.mjs?v=1.7.3';
+import {Renderer} from './renderer.mjs?v=1.7.3';
+import {getTrack,STYLES} from './music.mjs?v=1.7.3';
+import {SKINS,normalizeEconomy,awardClear,awardDouble,buySkin,buyRevive,REVIVE_COST} from './economy.mjs?v=1.7.3';
+import {RewardedAds} from './ads.mjs?v=1.7.3';
 const $=id=>document.getElementById(id);
 const app=$('app'),canvas=$('space'),renderer=new Renderer(canvas),audio=new Soundtrack(),ads=new RewardedAds();
 const swipe=new SwitchGesture();const sway=new SwayGesture();let firePointer=null;
@@ -22,6 +22,8 @@ audio.setVolumes(save.settings.musicVolume,save.settings.fxVolume);
 audio.setMute(!save.settings.sound);
 let swipeLesson=false;
 const swipeGuide=document.createElement('span');swipeGuide.className='swipe-guide';swipeGuide.setAttribute('aria-hidden','true');swipeGuide.innerHTML='<span class="swipe-touch"></span><span class="swipe-chevron">⌃</span><span class="swipe-caption">按住，向上划一下</span>';$('fire').append(swipeGuide);
+// Invisible upper rim: keep the visual cannon and its aim origin unchanged.
+const fireReach=document.createElement('span');fireReach.className='fire-touch-extension';fireReach.setAttribute('aria-hidden','true');$('fire').append(fireReach);
 function updateSwipeGuide(cue){const active=mode==='playing'&&!battle?.clearing;const hint=active&&!swipeLesson&&cue&&cue.status!=='matched'&&battle.weapon!==cue.weapon;$('fire').classList.toggle('swipe-lesson',active&&swipeLesson);$('fire').classList.toggle('swipe-hint',!!hint);}
 let supportPreview=null;
 let battle=null,mode='home',mapChapter=Math.floor((save.unlocked-1)/10),previousFrame=0,visualTime=0,hudClock=0,bannerTimer=0,resultTimer=0,pressed=false,keyboardHeld=false,modalReturn='home',lastFocus=null,activeRun=null,previewLevel=null,musicGenre=0;
