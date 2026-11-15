@@ -1,6 +1,6 @@
-import {cueAt} from './rhythm.mjs?v=1.7.3';
-import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.7.3';
-import {getTrack,frequency,stepTime} from './music.mjs?v=1.7.3';
+import {cueAt} from './rhythm.mjs?v=1.8.0';
+import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.8.0';
+import {getTrack,frequency,stepTime} from './music.mjs?v=1.8.0';
 export class Soundtrack {
  constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.generation=0;}
  async unlock(){
@@ -75,13 +75,13 @@ export class Soundtrack {
     if(beforeDrop&&e.instrument!=='snare'&&e.instrument!=='hat')continue;
     if(section==='groove'&&elapsed<8*t.beat&&e.role==='lead')continue;
     if(section==='outro'&&(e.role==='lead'||e.instrument==='tamb'))continue;
-    this.note({...e,velocity:e.velocity*(section==='climax'?1.12:section==='outro'?.75:1)},when);
+    this.note({...e,velocity:e.velocity*(section==='climax'?1.04:section==='outro'?.75:1)},when);
     if(section==='climax'&&e.role==='bass'&&sub%4===0)this.note({...e,midi:e.midi+12,velocity:e.velocity*.27},when);
    }
-   if(t.level<=10&&sub%4===0){const beat=Math.floor(this.step/4);if(sub===0)this.note({instrument:'kick',midi:0,duration:.15,velocity:.32},when);if(beat%4===2&&cueAt(t.level,beat+2)){this.note({instrument:'tom',midi:53,duration:.09,velocity:.65},when);this.note({instrument:'tom',midi:48,duration:.09,velocity:.65},when+t.beat);}}
-   if(section==='build'&&sub%2===0)this.note({instrument:'snare',midi:0,duration:.055,velocity:.15+.3*(elapsed-a.buildStart)/(a.climaxStart-a.buildStart)},when);
-   if(section==='climax'&&sub%4===0)this.note({instrument:'kick',midi:0,duration:.18,velocity:.65},when);
-   if(section==='climax'&&sub===0){this.hiss(when,.28,.08,5200);this.tone(when,frequency(t.key),.3,.16,'sine');}
+   if(sub%4===0){const beat=Math.floor(this.step/4);if(sub===0)this.note({instrument:'kick',midi:0,duration:.15,velocity:.32},when);if(beat%4===2&&cueAt(t.level,beat+2)){this.note({instrument:'tom',midi:53,duration:.09,velocity:.65},when);this.note({instrument:'tom',midi:48,duration:.09,velocity:.65},when+t.beat);}}
+   if(section==='build'&&(sub===0||sub===12||elapsed>=a.climaxStart-t.beat*4&&sub%2===0))this.note({instrument:'snare',midi:0,duration:.055,velocity:.15+.3*(elapsed-a.buildStart)/(a.climaxStart-a.buildStart)},when);
+   if(section==='climax'&&sub%4===0&&!t.byStep[this.step%n].some(e=>e.instrument==='kick'))this.note({instrument:'kick',midi:0,duration:.18,velocity:.65},when);
+   if(section==='climax'&&sub===0&&Math.floor(this.step/16)%4===0){this.hiss(when,.18,.035,4200);this.tone(when,frequency(t.key),.3,.12,'sine');}
   }this.step++;}
  }
  fx(type,data={}){
