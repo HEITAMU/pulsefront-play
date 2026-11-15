@@ -1,6 +1,6 @@
-import {cueAt} from './rhythm.mjs?v=1.9.1';
-import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.9.1';
-import {getTrack,frequency,stepTime} from './music.mjs?v=1.9.1';
+import {cueAt} from './rhythm.mjs?v=1.8.0';
+import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.8.0';
+import {getTrack,frequency,stepTime} from './music.mjs?v=1.8.0';
 export class Soundtrack {
  constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.generation=0;}
  async unlock(){

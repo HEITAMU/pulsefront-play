@@ -1,4 +1,4 @@
-import {campaignFor} from './campaign.mjs?v=1.9.1';
+import {campaignFor} from './campaign.mjs?v=1.8.0';
 // One score drives music accents, warnings and enemy waves in the first ten stages.
 export function cueAt(level,beat,climaxBeat=64){
  if(beat<8)return null;
@@ -19,7 +19,7 @@ export class RhythmDirector{
  // Do not replay missed waves after a pause or a clock correction.
  const cue=cueAt(b.c.level,beat,Math.round(b.arrangement.climaxStart/b.beatDuration));
  if(beat%4===2){const next=cueAt(b.c.level,beat+2,Math.round(b.arrangement.climaxStart/b.beatDuration));if(next&&b.spawnIntensity()>=.7&&b.t+2*b.beatDuration<b.arrangement.spawnEnd){
-  this.telegraph={...next,weapon:'wave',targetBeat:beat+2,matched:false};this.stageAssault(this.telegraph);b.emit('assaultWarning',{...this.telegraph,until:(beat+2)*b.beatDuration});
+  this.telegraph={...next,weapon:next.heavy?'laser':'wave',targetBeat:beat+2,matched:false};this.stageAssault(this.telegraph);b.emit('assaultWarning',{...this.telegraph,until:(beat+2)*b.beatDuration});
  }}
  if(beat%2===0){const count=Math.round(this.plan.swarmCount*(this.plan.dense?1.2:this.plan.breath?.8:1)*(b.musicPhase==='climax'?1.5:1)*b.spawnIntensity());for(let i=0;i<count;i++){const e=b.spawn(i%5===0?'runner':'drone',0);if(e){e.rhythmRole='swarm';e.hp=e.maxHp=this.plan.swarmHp;e.speed*=1.12;
  if(this.plan.split&&i===2&&beat%8===0)e.type='splitter';
@@ -43,9 +43,9 @@ export class RhythmDirector{
  if(left>=-.23&&left<=2.05)return {...c,status:Math.abs(left)<=.23?'hit':'prepare',count:Math.max(0,Math.ceil(left-.03))};
  return null;
  }
- resolveBeat(beat,weapon){const b=this.b,c=this.telegraph;if(!c||c.matched||beat!==c.targetBeat)return false;let hits=0;
- for(const e of b.enemies){if(e.hp<=0||e.cohort!==c.targetBeat)continue;const aim=b.aim?Math.atan2(b.aim.y,b.aim.x):-Math.PI/2,angle=Math.atan2(e.y-b.cy,e.x-b.cx);if(b.growth.power>=5&&Math.abs(Math.atan2(Math.sin(angle-aim),Math.cos(angle-aim)))>1)continue;hits++;e.stunUntil=b.t+b.beatDuration*1.3;e.dashUntil=0;b.damage(e,e.maxHp*.12,true,'counter');}
- if(!hits)return false;c.matched=true;b.emit('rhythmCounter',{weapon,side:c.side});return true;
+ resolveBeat(beat,weapon){const b=this.b,c=this.telegraph;if(!c||c.matched||beat!==c.targetBeat||weapon!==c.weapon)return false;c.matched=true;
+ for(const e of b.enemies){if(e.hp<=0||e.cohort!==c.targetBeat)continue;e.stunUntil=b.t+b.beatDuration*1.3;e.dashUntil=0;b.damage(e,e.maxHp*(e.rhythmRole==='heavy'?.28:.5),true,'counter');}
+ b.emit('rhythmCounter',{weapon,side:c.side});return true;
  }
 
  move(e,dt){const b=this.b,beatTime=(b.rhythmTime??b.t)/b.beatDuration,beat=Math.floor(beatTime),fraction=beatTime-beat,a=Math.atan2(b.cy-e.y,b.cx-e.x);e.beatPulse=Math.exp(-fraction*10);e.warn=0;if(beatTime<(e.readyBeat||0)){e.warn=Math.max(0,1-(e.readyBeat-beatTime)/2);return;}if(e.stunUntil>b.t){e.warn=0;return;}
@@ -56,7 +56,7 @@ export class RhythmDirector{
  if(e.slowUntil>b.t)speed*=.7;
  e.x+=Math.cos(a)*speed*dt;e.y+=Math.sin(a)*speed*dt;
  }
- multiplier(e,kind){if(this.active('pierce'))return 1.2;if(e.rhythmRole==='heavy')return kind==='crest'?1.2:kind==='wave'?.65:1;return 1;}
+ multiplier(e,kind){if(this.active('pierce'))return 1.2;if(e.rhythmRole==='heavy')return kind==='laser'?1.65:kind==='wave'?.38:1;return 1;}
  push(e,perfect,kind){const b=this.b;if(e.boss||kind==='blast'||kind==='support'||e.hp<=0||b.t<(e.pushAt||0))return;const a=Math.atan2(e.y-b.cy,e.x-b.cx),f=b.aim?Math.max(0,Math.cos(a-Math.atan2(b.aim.y,b.aim.x))):0;const amount=(kind==='wave'?4:2)*(perfect?2:1)*(1+f*1.8)*(this.active('push')?3:1)*(e.rhythmRole==='heavy'?.2:1);e.pushAt=b.t+.14;e.x=Math.max(e.radius,Math.min(b.w-e.radius,e.x+Math.cos(a)*amount));e.y=Math.max(80,e.y+Math.sin(a)*amount);e.slowUntil=b.t+.16;}
  killed(e){if(e.rhythmRole!=='energy')return;this.buff=e.reward;this.buffUntil=this.b.t+6;this.picked++;this.b.emit('pickup',{kind:this.buff});}
  active(kind){return this.buff===kind&&this.b.t<this.buffUntil;}

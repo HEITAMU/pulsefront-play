@@ -1,4 +1,4 @@
-import {arrangementFor} from './arrangement.mjs?v=1.9.1';
+import {arrangementFor} from './arrangement.mjs?v=1.8.0';
 const random=seed=>()=>{let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};
 export const STYLES=[
  {id:'funk',name:'Funk 放克',bpm:106,swing:.045,bass:'slap',keys:'clav',lead:'brass',kick:[0,6,10],snare:[4,12],hat:[0,2,4,6,8,10,12,14],bassSteps:[0,3,6,7,10,12,15],chords:[3,7,11,14],progression:[0,0,5,0,0,7,5,0],quality:[0,4,7,10,14],scale:[0,3,5,6,7,10],title:'霓虹切分',color:'#bcf7b4'},

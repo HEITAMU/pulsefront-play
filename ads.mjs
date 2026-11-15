@@ -1,4 +1,4 @@
-import {AD_CONFIG} from './ad-config.mjs?v=1.9.1';
+import {AD_CONFIG} from './ad-config.mjs?v=1.8.0';
 export function validateAdConfig(config,hostname){
  return !!(config.enabled&&config.provider==='adsense-h5'&&/^ca-pub-\d{16}$/.test(config.publisherId)&&config.programApproved&&config.privacyReady&&Array.isArray(config.approvedHosts)&&config.approvedHosts.includes(hostname));
 }
