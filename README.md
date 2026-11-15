@@ -1,4 +1,4 @@
-# 脉冲防线 / PULSEFRONT 1.9.2
+# 脉冲防线 / PULSEFRONT 1.9.1
 
 Mobile portrait rhythm shooter: 100 stages, ten musical styles, original procedural space visuals.
 
