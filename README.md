@@ -1,4 +1,4 @@
-# 脉冲防线 / PULSEFRONT 1.9.0
+# 脉冲防线 / PULSEFRONT 1.9.1
 
 Mobile portrait rhythm shooter: 100 stages, ten musical styles, original procedural space visuals.
 
@@ -17,6 +17,10 @@ First two stages introduce the controls; pressure starts in stage 3. Beyond stag
 ## Music and ending
 
 100 complete synthesized arrangements across Funk, blues, Disco, soul, jazz, Boogie, Latin, breaks, electro and blues rock. Intro, verse/answer, break, build, hook, rests and a tonic ending cover the whole stage. Stages last roughly 60–90 seconds including settlement. Spawns taper from the final six seconds and stop in the final two; music fades during the final five. Clearing waits at least 3.5 seconds and respects effect tails. No victory guitar jingle or vibration.
+
+## Seamless settlement
+
+After clear-field and effect tails finish, the bottom firing controls fade into an in-scene settlement dock. No full-screen result modal or dimmed backdrop is opened. Next-stage and home-to-battle transitions crossfade the lower controls while keeping the space background visible. Failure uses the same dock with retry and eligible revive actions. Rewards are still awarded exactly once in the finish handler.
 
 ## Validation
 
