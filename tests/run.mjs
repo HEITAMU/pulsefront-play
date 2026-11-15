@@ -16,6 +16,5 @@ await import('./support.mjs');
 
 await import('./settlement.mjs');
 
-await import('./rhythm-trial.mjs');
-
-await import('./weapon-cues.mjs');
+// Archived v1.7 weapon-switch trial; current wave-only rules supersede it.
+await import('./pulse-rules.mjs');
