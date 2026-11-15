@@ -1,4 +1,4 @@
-import {campaignFor} from './campaign.mjs?v=1.9.1';
+import {campaignFor} from './campaign.mjs?v=1.9.2';
 // One score drives music accents, warnings and enemy waves in the first ten stages.
 export function cueAt(level,beat,climaxBeat=64){
  if(beat<8)return null;
