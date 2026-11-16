@@ -1,8 +1,11 @@
-import {RhythmDirector} from './rhythm.mjs?v=1.8.0';
-import {normalizeGrowth} from './growth.mjs?v=1.8.0';
-import {SupportSystem} from './support.mjs?v=1.8.0';
-import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.8.0';
-export const VERSION='1.8.0';
+import {RhythmDirector} from './rhythm.mjs?v=1.8.1';
+import {normalizeGrowth} from './growth.mjs?v=1.8.1';
+import {SupportSystem} from './support.mjs?v=1.8.1';
+import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.8.1';
+export const VERSION='1.8.1';
+// Aim may reach the pictured side positions, never rotate below the cannon.
+export function aimAngleFor(aim){return aim?Math.max(-Math.PI+.16,Math.min(-.16,Math.atan2(Math.min(-.001,aim.y),aim.x))):-Math.PI/2;}
+export function enemyHealthScale(level){return level<3?1.2:1.35;}
 export const MODULES=[{"id": "echo", "name": "回旋音浪", "description": "音浪到达远端后返回，再造成一次伤害。", "family": "wave"}, {"id": "reverb", "name": "宽幅共鸣", "description": "音浪伤害提高25%，命中范围加宽。", "family": "wave"}, {"id": "tempo", "name": "急速脉冲", "description": "音浪速度提高30%，长按射速提高15%。", "family": "wave"}, {"id": "prism", "name": "折射镜阵", "description": "激光命中后折向附近另一名敌人。", "family": "laser"}, {"id": "focus", "name": "聚焦透镜", "description": "激光伤害提高30%。", "family": "laser"}, {"id": "pierce", "name": "穿甲光束", "description": "激光忽略护盾，额外发射一束。", "family": "laser"}, {"id": "blast", "name": "连锁爆破", "description": "击杀引发小范围爆炸，可连锁触发。", "family": "blast"}, {"id": "chain", "name": "震荡扩散", "description": "爆炸范围提高45%，爆炸伤害提高20%。", "family": "blast"}, {"id": "shrapnel", "name": "碎片弹头", "description": "每次开火额外发射两枚追踪弹。", "family": "blast"}, {"id": "gravity", "name": "引力核心", "description": "每四次攻击生成聚怪黑洞。", "family": "gravity"}, {"id": "orbit", "name": "轨道牵引", "description": "每次击杀回复少量超载能量。", "family": "gravity"}, {"id": "vortex", "name": "坍缩涡流", "description": "黑洞持续更久，并持续伤害其中敌人。", "family": "gravity"}];
 export function directionalWeight(angle,aim){if(aim==null)return 0;const delta=Math.atan2(Math.sin(angle-aim),Math.cos(angle-aim));return Math.abs(delta)>=.7?0:(1+Math.cos(Math.PI*delta/.7))/2;}
 export const BPM=116;
@@ -30,43 +33,25 @@ export class Battle {
   const previous=this.rhythmTime;this.rhythmTime=time;this.cooldown=0;
   const fired=this.shoot(phase,true);this.rhythmTime=previous;return fired;
  }
- switchWeapon(type,time=this.rhythmTime??this.t){
-  if(this.state!=='playing'||this.clearing||!['wave','laser'].includes(type)||type===this.weapon)return false;
-  this.weapon=type;const beat=Math.round(time/this.beatDuration),distance=Math.abs(time-beat*this.beatDuration);
-  const perfect=distance<=.125&&beat-this.lastSwitchBeat>=4&&beat!==this.lastBeat;
-  if(perfect){this.lastSwitchBeat=beat;this.switchHits++;const old=this.rhythmTime;this.rhythmTime=time;this.cooldown=0;this.switchPower=true;this.shoot(((time%this.beatDuration)+this.beatDuration)%this.beatDuration,true);this.switchPower=false;this.rhythmTime=old;}
-  this.emit('switch',{weapon:type,perfect});return perfect;
- }
- switchReady(){return Math.round((this.rhythmTime??this.t)/this.beatDuration)-this.lastSwitchBeat>=4;}
+ switchWeapon(){return false;}
+ switchReady(){return false;}
  phase(){return((this.t%this.beatDuration)+this.beatDuration)%this.beatDuration;}
  shoot(phase=this.phase(),manual=true){
-  if(this.state!=='playing'||this.clearing||this.cooldown>0)return false;
-  const beatNumber=Math.round((this.rhythmTime??this.t)/this.beatDuration);const distance=Math.min(phase,this.beatDuration-phase);const perfect=manual&&distance<=.125&&beatNumber!==this.lastBeat;
-  if(perfect){this.perfects++;this.lastBeat=beatNumber;this.energy=Math.min(100,this.energy+9);this.emit('perfect',{x:this.cx,y:this.cy-130});this.support.beat(beatNumber);this.director?.resolveBeat(beatNumber,this.weapon);if(this.musicPhase==='climax'){this.climaxHits++;this.emit('climaxHit',{count:this.climaxHits});if(this.climaxHits>=4){this.climaxHits=0;this.climaxBursts++;this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:80,prev:80,maxR:this.h+80,damage:55*this.c.weaponScale,boosted:true,life:2.6,hit:new Set(),speed:650});this.emit('climaxBurst',{count:this.climaxBursts});}}}else{this.energy=Math.min(100,this.energy+2.4);}
-  if(this.energy>=100&&this.overdrive<=0)this.pendingOverdrive=true;
-  const boosted=this.overdrive>0, power=(perfect?2.2:1)*(boosted?1.45:1)*(this.musicPhase==='climax'?1.35:1)*this.c.weaponScale*(1+this.growth.power*.12)*(this.switchPower?1.6:1)*(this.director?.active('pierce')?1.35:1);
+  if(this.state!=='playing'||this.clearing)return false;
+  const beatNumber=Math.round((this.rhythmTime??this.t)/this.beatDuration),perfect=manual&&Math.min(phase,this.beatDuration-phase)<=.125&&beatNumber!==this.lastBeat;
+  if(this.cooldown>0&&!perfect)return false;
+  this.weapon='wave';const tier=Math.floor(this.growth.power/5),boosted=this.overdrive>0;
+  const base=4*this.c.weaponScale*(1+this.growth.power*.06),strength=(boosted?1.45:1)*(this.musicPhase==='climax'?1.35:1);
+  // One accurate crest beats all maximum-rate thin rings in the same beat.
+  const thinBudget=Math.ceil(this.beatDuration/.16)*base*1.45*1.35;
+  const peak=thinBudget*6*(tier>=2?1.2:1)*(tier>=4?1.25:1),shares=tier>=3?[.7,.3]:[1];
   this.shots++;this.cooldown=.105;
-  if(this.weapon==='wave'){
-   this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:this.radius-4,prev:this.radius-4,maxR:this.h+80,damage:10*power*(this.modules.has('reverb')?1.25:1),aimAngle:this.aim?Math.atan2(Math.min(-.05,this.aim.y),this.aim.x):null,returning:false,echo:this.modules.has('echo'),switchShot:!!this.switchPower,boosted:perfect||boosted,life:2.6,hit:new Set(),speed:(410+(boosted?65:0))*(this.modules.has('tempo')?1.3:1)});
-   const targets=this.enemies.filter(e=>e.hp>0&&!e.boss&&this.targetable(e)).sort((a,b)=>this.priority(a)-this.priority(b));
-   for(let i=0;i<Math.min(4,targets.length);i++){const target=targets[i];const angle=Math.atan2(target.y-this.cy,target.x-this.cx);this.bolts.push({x:this.cx+Math.cos(angle)*this.radius,y:this.cy+Math.sin(angle)*this.radius,target:target.id,damage:5.5*power,life:2.4,angle});}
-  }else{
-   const targets=this.enemies.filter(e=>e.hp>0&&this.targetable(e)).sort((a,b)=>(a.boss?-140:0)+(this.priority(a)-a.radius)*.45-(b.boss?-140:0)-(this.priority(b)-b.radius)*.45);
-   const count=(boosted?6:5)+(this.modules.has('pierce')?1:0), used=new Set();
-   for(let i=0;i<count;i++){
-    let target=targets.find(e=>e.hp>0&&!used.has(e.id));if(target)used.add(target.id);
-    const angle=target?Math.atan2(target.y-this.cy,target.x-this.cx):-Math.PI/2+(i-(count-1)/2)*.28;
-    const x=this.cx+Math.cos(angle)*this.radius,y=this.cy+Math.sin(angle)*this.radius;
-    const ex=x+Math.cos(angle)*(this.h+200),ey=y+Math.sin(angle)*(this.h+200);
-    this.beams.push({x,y,ex,ey,life:perfect?.26:.18,maxLife:perfect?.26:.18,boosted:perfect||boosted,directional:!!this.switchPower&&i===0});
-    for(const e of this.enemies){if(e.hp<=0||!this.targetable(e))continue;const vx=e.x-x,vy=e.y-y,along=vx*Math.cos(angle)+vy*Math.sin(angle),across=Math.abs(vx*Math.sin(angle)-vy*Math.cos(angle));if(along>=-e.radius&&across<e.radius+(perfect?12:7))this.damage(e,17*power*(this.modules.has('focus')?1.3:1),perfect,'laser');}
-   }
-  }
-  if(this.modules.has('prism')&&this.weapon==='laser'){const targets=this.enemies.filter(e=>e.hp>0&&this.targetable(e)).sort((a,b)=>this.priority(a)-this.priority(b));if(targets.length>1){const a=targets[0],b=targets[1];this.beams.push({x:a.x,y:a.y,ex:b.x,ey:b.y,life:.25,maxLife:.25,boosted:true});this.damage(b,12*power,true,'laser');}}
-  if(this.modules.has('shrapnel'))for(const e of this.enemies.filter(e=>e.hp>0&&this.targetable(e)).slice(0,2))this.bolts.push({x:this.cx,y:this.cy-this.radius,target:e.id,damage:7*power,life:2.4,angle:-Math.PI/2});
-  if((this.modules.has('gravity')||this.modules.has('vortex'))&&this.shots%4===0){const e=this.enemies.filter(e=>e.hp>0&&!e.boss&&this.targetable(e)).sort((a,b)=>this.priority(a)-this.priority(b))[0];if(e&&this.wells.length<3)this.wells.push({x:e.x,y:e.y,life:this.modules.has('vortex')?3.5:2,r:110});}
-  if(this.aim&&this.weapon==='laser'){const angle=Math.atan2(Math.min(-.05,this.aim.y),this.aim.x),x=this.cx+Math.cos(angle)*this.radius,y=this.cy+Math.sin(angle)*this.radius;this.beams.push({x,y,ex:x+Math.cos(angle)*(this.h+200),ey:y+Math.sin(angle)*(this.h+200),life:.3,maxLife:.3,boosted:perfect||boosted,directional:true});for(const e of this.enemies){if(e.hp<=0||!this.targetable(e))continue;const dx=e.x-x,dy=e.y-y,along=dx*Math.cos(angle)+dy*Math.sin(angle),across=Math.abs(dx*Math.sin(angle)-dy*Math.cos(angle));if(along>=-e.radius&&across<e.radius+18)this.damage(e,24*power*(this.modules.has('focus')?1.3:1),perfect,'laser');}}
-  this.emit('fire',{weapon:this.weapon,perfect,boosted});return true;
+  if(perfect){this.perfects++;this.lastBeat=beatNumber;this.energy=Math.min(100,this.energy+9);this.emit('perfect',{x:this.cx,y:this.cy-130});this.support.beat(beatNumber);this.director?.resolveBeat(beatNumber,'wave');if(this.musicPhase==='climax'){this.climaxHits++;this.emit('climaxHit',{count:this.climaxHits});if(this.climaxHits>=4){this.climaxHits=0;this.climaxBursts++;this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:80,prev:80,maxR:this.h+80,damage:12*this.c.weaponScale,boosted:true,life:2.6,hit:new Set(),speed:650});this.emit('climaxBurst',{count:this.climaxBursts});}}}
+  else this.energy=Math.min(100,this.energy+.35);
+  if(this.energy>=100&&this.overdrive<=0)this.pendingOverdrive=true;
+  const crest=perfect&&tier>=1;
+  for(const [i,share] of (crest?shares:[1]).entries())this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:this.radius-4-i*18,prev:this.radius-4-i*18,maxR:this.h+80,damage:i?0:base*strength*(perfect&&tier===0?4:1),crestDamage:crest?peak*share:0,perfect,aimAngle:crest?aimAngleFor(this.aim):null,returning:false,echo:false,boosted:perfect||boosted,life:2.6,hit:new Set(),speed:410+(boosted?65:0)});
+  this.emit('fire',{weapon:'wave',perfect,boosted});return true;
  }
 
  spawnIntensity(){return this.t<this.arrangement.spawnFadeStart?1:Math.max(0,(this.arrangement.spawnEnd-this.t)/(this.arrangement.spawnEnd-this.arrangement.spawnFadeStart));}
@@ -80,7 +65,7 @@ export class Battle {
   let base={shield:[32,62,21,9,100],healer:[14,34,17,6,120],bomb:[10,46,16,7,90],drone:[8,49,13,7,65],runner:[6,82,10,7,75],tank:[60,45,22,12,130],splitter:[24,40,18,8,100],mini:[5,62,8,4,30],boss:[this.c.bossHp,12,53,20,1500]}[type];
   side=side??Math.floor(r()*3);let x,y;
   if(at){x=at.x;y=at.y;}else if(type==='boss'){x=this.cx;y=-70;}else if(side===0){x=24+r()*(this.w-48);y=-30-r()*45;}else{x=side===1?-28:this.w+28;y=90+r()*Math.max(80,this.cy*.6-90);}
-  const e={id:++this.id,type,x,y,radius:base[2],hp:base[0]*(type==='boss'?1:this.c.hpScale),maxHp:base[0]*(type==='boss'?1:this.c.hpScale),speed:base[1]*this.c.speedScale*(this.h<650?.80:1)*Math.max(.55,Math.min(1.15,this.w/390,(this.cy-60)/642)),damage:base[3]*this.c.damageScale,value:base[4],phase:r()*Math.PI*2,hit:0,age:0,boss:type==='boss',side,attack:2.6};
+  const e={id:++this.id,type,x,y,radius:base[2],hp:base[0]*(type==='boss'?1:this.c.hpScale)*enemyHealthScale(this.c.level),maxHp:base[0]*(type==='boss'?1:this.c.hpScale)*enemyHealthScale(this.c.level),speed:base[1]*this.c.speedScale*(this.h<650?.80:1)*Math.max(.55,Math.min(1.15,this.w/390,(this.cy-60)/642)),damage:base[3]*this.c.damageScale,value:base[4],phase:r()*Math.PI*2,hit:0,age:0,boss:type==='boss',side,attack:2.6};
   e.bossKind=this.c.chapter%3;e.beatDuration=this.beatDuration;e.guard=e.type==='shield'?Math.min(145,52*this.c.hpScale):0;e.healClock=1.4;this.enemies.push(e);this.emit('spawn',e);return e;
  }
  damage(e,amount,perfect=false,kind='wave'){
@@ -98,20 +83,20 @@ export class Battle {
  step(dt,phase){
   if(this.state!=='playing')return;dt=Math.min(dt,.06);this.t+=dt;const nextPhase=sectionAt(this.t,this.arrangement);if(nextPhase!==this.musicPhase){this.musicPhase=nextPhase;this.emit('musicPhase',{phase:nextPhase});}this.cooldown=Math.max(0,this.cooldown-dt);this.overdrive=Math.max(0,this.overdrive-dt);this.hurtCooldown=Math.max(0,this.hurtCooldown-dt);this.director?.tick();
   if(this.held){this.repeat-=dt;if(this.repeat<=0){this.shoot(phase??this.phase(),false);this.repeat+=(this.weapon==='wave'?.24:.27)*(this.modules.has('tempo')?.85:1)/(1+this.growth.rate*.05);}}
-  if(this.pendingOverdrive&&this.overdrive<=0&&(phase??this.phase())<dt){this.pendingOverdrive=false;this.energy=0;this.overdrive=5.3;this.burstCount++;this.emit('overdrive',{count:this.burstCount});this.emit('finisher',{kind:this.finisher});if(this.finisher==='gravity'){this.wells.push({x:this.cx,y:this.cy*.55,life:4,r:260,burst:true});}else if(this.finisher==='laser'){for(const e of [...this.enemies])if(this.targetable(e)){this.beams.push({x:e.x,y:0,ex:e.x,ey:this.cy,life:.8,maxLife:.8,boosted:true});this.damage(e,40*this.c.weaponScale,true,'laser');}}else{this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:80,prev:80,maxR:this.h+80,damage:45*this.c.weaponScale,boosted:true,life:2.6,hit:new Set(),speed:600});}}
+  if(this.pendingOverdrive&&this.overdrive<=0&&(phase??this.phase())<dt){this.pendingOverdrive=false;this.energy=0;this.overdrive=5.3;this.burstCount++;this.emit('overdrive',{count:this.burstCount});this.emit('finisher',{kind:this.finisher});if(this.finisher==='gravity'){this.wells.push({x:this.cx,y:this.cy*.55,life:4,r:260,burst:true});}else if(this.finisher==='laser'){for(const e of [...this.enemies])if(this.targetable(e)){this.beams.push({x:e.x,y:0,ex:e.x,ey:this.cy,life:.8,maxLife:.8,boosted:true});this.damage(e,40*this.c.weaponScale,true,'laser');}}else{this.waves.push({id:this.id++,x:this.cx,y:this.cy,r:80,prev:80,maxR:this.h+80,damage:12*this.c.weaponScale,boosted:true,life:2.6,hit:new Set(),speed:600});}}
   for(const well of this.wells){well.life-=dt;for(const e of this.enemies){if(e.hp<=0||e.boss)continue;const d=Math.hypot(e.x-well.x,e.y-well.y);if(d<well.r&&d>5){const pull=well.burst?3.2:1.6;e.x+=(well.x-e.x)*dt*pull;e.y+=(well.y-e.y)*dt*pull;if(this.modules.has('vortex'))this.damage(e,dt*10*this.c.weaponScale,false,'gravity');}}if(well.burst&&well.life<=0){const radius=well.r+35;this.emit('gravityBurst',{x:well.x,y:well.y,radius});for(const e of [...this.enemies])if(e.hp>0&&Math.hypot(e.x-well.x,e.y-well.y)<radius)this.damage(e,75*this.c.weaponScale,true,'gravity');}}this.wells=this.wells.filter(w=>w.life>0);
   if(this.t-this.lastKill>2.2)this.combo=0;
   if(!this.rhythmEnabled&&this.t<this.arrangement.spawnEnd){this.spawnClock-=dt*(this.musicPhase==='climax'?1.2:1)*this.spawnIntensity();if(this.spawnClock<=0){const intro=Math.min(1,this.t/6),g=this.c.group;const count=Math.floor(g)+(this.random()<g%1?1:0);for(let i=0;i<count;i++)this.spawn();this.spawnClock+=this.c.interval/(.65+.35*intro)*(this.c.boss&&this.bossSpawned?.96:1);}}
-  if(this.c.boss&&!this.bossSpawned&&this.t>this.c.duration*.45){this.bossSpawned=true;const boss=this.spawn('boss');if(this.rhythmEnabled){boss.hp=boss.maxHp=2300+this.c.chapter*170;boss.rhythmRole='conductor';}if(boss.bossKind===1){boss.maxHp*=.55;boss.hp=boss.maxHp;boss.twin=-1;const twin=this.spawn('boss');if(twin){if(this.rhythmEnabled){twin.maxHp=2300+this.c.chapter*170;twin.rhythmRole='conductor';}twin.maxHp*=.55;twin.hp=twin.maxHp;twin.twin=1;}}this.emit('boss',{name:['旋转堡垒','双子猎手','蜂群母舰'][this.c.chapter%3],hint:['护甲每四拍开放一次弱点','左右双核，偏向按钮两侧集火','持续放出护卫，波纹清场'][this.c.chapter%3]});}
+  if(this.c.boss&&!this.bossSpawned&&this.t>this.c.duration*.45){this.bossSpawned=true;const boss=this.spawn('boss');if(this.rhythmEnabled){boss.hp=boss.maxHp=(2300+this.c.chapter*170)*enemyHealthScale(this.c.level);boss.rhythmRole='conductor';}if(boss.bossKind===1){boss.maxHp*=.55;boss.hp=boss.maxHp;boss.twin=-1;const twin=this.spawn('boss');if(twin){if(this.rhythmEnabled){twin.maxHp=(2300+this.c.chapter*170)*enemyHealthScale(this.c.level);twin.rhythmRole='conductor';}twin.maxHp*=.55;twin.hp=twin.maxHp;twin.twin=1;}}this.emit('boss',{name:['旋转堡垒','双子猎手','蜂群母舰'][this.c.chapter%3],hint:['护甲每四拍开放一次弱点','左右双核，偏向按钮两侧集火','持续放出护卫，波纹清场'][this.c.chapter%3]});}
   for(const e of this.enemies){
    if(e.hp<=0)continue;e.age+=dt;e.hit=Math.max(0,e.hit-dt);
    if(e.type==='healer'){e.healClock-=dt;if(e.healClock<=0){e.healClock=1.4;for(const other of this.enemies)if(other!==e&&!other.boss&&Math.hypot(other.x-e.x,other.y-e.y)<100)other.hp=Math.min(other.maxHp,other.hp+3*this.c.hpScale);this.emit('repair',{x:e.x,y:e.y});}}
-   if(e.boss){e.y+=Math.min(1,(Math.min(225,this.h*.30)-e.y)/100)*42*dt;e.x=this.cx+(e.twin?e.twin*this.w*.24:Math.sin(e.age*.65)*(this.w*.23));if(this.rhythmEnabled){const beat=Math.floor((this.rhythmTime??this.t)/this.beatDuration);e.warn=beat%8>=5?(beat%8-5)/3:0;if(beat%8===0&&e.conducted!==beat&&this.t<this.arrangement.spawnEnd){e.conducted=beat;for(let i=0;i<5;i++){const rush=this.spawn('runner',i%2+1,{x:e.x+(i-2)*25,y:e.y+45});if(rush){rush.rhythmRole='charger';rush.hp=rush.maxHp=95;rush.speed*=2;rush.damage=18;}}} }e.attack-=dt;if(!this.rhythmEnabled&&e.attack<0&&this.t<this.arrangement.spawnEnd){e.attack=(2.8-.8*this.c.p)/Math.max(.15,this.spawnIntensity());for(let i=0;i<(e.bossKind===2?5:e.bossKind===1?2:3);i++)this.spawn(e.bossKind===2&&i===0?'shield':'runner',0,{x:e.x+(i-1)*30,y:e.y+40});}}
+   if(e.boss){e.y+=Math.min(1,(Math.min(225,this.h*.30)-e.y)/100)*42*dt;e.x=this.cx+(e.twin?e.twin*this.w*.24:Math.sin(e.age*.65)*(this.w*.23));if(this.rhythmEnabled){const beat=Math.floor((this.rhythmTime??this.t)/this.beatDuration);e.warn=beat%8>=5?(beat%8-5)/3:0;if(beat%8===0&&e.conducted!==beat&&this.t<this.arrangement.spawnEnd){e.conducted=beat;for(let i=0;i<5;i++){const rush=this.spawn('runner',i%2+1,{x:e.x+(i-2)*25,y:e.y+45});if(rush){rush.rhythmRole='charger';rush.hp=rush.maxHp=95*enemyHealthScale(this.c.level);rush.speed*=2;rush.damage=18;}}} }e.attack-=dt;if(!this.rhythmEnabled&&e.attack<0&&this.t<this.arrangement.spawnEnd){e.attack=(2.8-.8*this.c.p)/Math.max(.15,this.spawnIntensity());for(let i=0;i<(e.bossKind===2?5:e.bossKind===1?2:3);i++)this.spawn(e.bossKind===2&&i===0?'shield':'runner',0,{x:e.x+(i-1)*30,y:e.y+40});}}
    else if(this.director){this.director.move(e,dt);}
    else{const a=Math.atan2(this.cy-e.y,this.cx-e.x);const wiggle=e.type==='runner'?Math.sin(e.age*7+e.phase)*16:Math.sin(e.age*3+e.phase)*4;e.x+=(Math.cos(a)*e.speed+wiggle)*dt;e.y+=Math.sin(a)*e.speed*dt;}
    if(!e.boss&&this.distance(e)<this.radius*.8+e.radius){e.hp=0;if(this.hurtCooldown<=0){this.hp=Math.max(0,this.hp-e.damage);this.hurtCooldown=this.rhythmEnabled?.24:.48;this.emit('hurt',{x:e.x,y:e.y,damage:e.damage});}}
   }
-  for(const w of this.waves){w.prev=w.r;w.r+=(w.returning?-1:1)*w.speed*dt;w.life-=dt;if(w.echo&&!w.returning&&w.r>Math.min(this.h*.7,this.cy-150)){w.returning=true;w.hit.clear();w.life=2;}if(w.returning&&w.r<75)w.life=0;for(const e of this.enemies){if(e.hp<=0||!this.targetable(e)||w.hit.has(e.id))continue;const dist=Math.hypot(e.x-w.x,e.y-w.y),directional=directionalWeight(Math.atan2(e.y-w.y,e.x-w.x),w.aimAngle),thickness=14+directional*12;if(e.y<w.y+8&&dist-e.radius<=Math.max(w.r,w.prev)+thickness&&dist+e.radius>=Math.min(w.r,w.prev)-thickness){w.hit.add(e.id);this.damage(e,w.damage*(1+directional*1.2),w.boosted);}}}
+  for(const w of this.waves){w.prev=w.r;w.r+=(w.returning?-1:1)*w.speed*dt;w.life-=dt;if(w.echo&&!w.returning&&w.r>Math.min(this.h*.7,this.cy-150)){w.returning=true;w.hit.clear();w.life=2;}if(w.returning&&w.r<75)w.life=0;for(const e of this.enemies){if(e.hp<=0||!this.targetable(e)||w.hit.has(e.id))continue;const dist=Math.hypot(e.x-w.x,e.y-w.y),directional=directionalWeight(Math.atan2(e.y-w.y,e.x-w.x),w.aimAngle),thickness=14+directional*12;if(e.y<w.y+8&&dist-e.radius<=Math.max(w.r,w.prev)+thickness&&dist+e.radius>=Math.min(w.r,w.prev)-thickness){w.hit.add(e.id);const crestHit=(w.crestDamage||0)*directional;this.damage(e,w.damage+crestHit,!!w.perfect,crestHit>0?'crest':'wave');}}}
   for(const b of this.bolts){b.life-=dt;let target=this.enemies.find(e=>e.id===b.target&&e.hp>0&&this.targetable(e));if(!target){target=this.enemies.find(e=>e.hp>0&&this.targetable(e));if(target)b.target=target.id;}if(target){b.angle=Math.atan2(target.y-b.y,target.x-b.x);b.x+=Math.cos(b.angle)*600*dt;b.y+=Math.sin(b.angle)*600*dt;if(Math.hypot(target.x-b.x,target.y-b.y)<target.radius+15){this.damage(target,b.damage);b.life=0;}}else b.life=0;}
   this.support.update(dt);
   this.enemies=this.enemies.filter(e=>e.hp>0);this.waves=this.waves.filter(w=>w.life>0);this.bolts=this.bolts.filter(b=>b.life>0);this.beams=this.beams.filter(b=>(b.life-=dt)>0);

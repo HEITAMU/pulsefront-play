@@ -1,20 +1,18 @@
-# 脉冲防线 / PULSEFRONT 1.8.0
+# 脉冲防线 / PULSEFRONT 1.8.1
 
-Portrait one-button space shooter with100 stages and100 synthesized groove arrangements. Hold to fire; manually hit the beat for bonuses. Move inside the button to add a thick laser or smoothly thickened wave sector; baseline attacks remain active elsewhere.
+Built on the user-approved v1.8 visual baseline, including complete circular waves and smoothly tapered directional crests. The main cannon is wave-only. Aim is clamped to 0.16 radians above either horizontal side; moving below the button cannot turn the crest downward. The existing line width, glow, crest geometry and travel speed are preserved.
 
-## Earn the easy second half
+## Beat-driven cannon growth
 
-Early beat streaks build support volley count, damage, speed and penetration. Missed sequences retain earned power until the stage ends. A strong first half produces an easier harvest in the climax; enemy stats never scale in response to support rank.
+Holding emits thin rings. A new tap or alternating sway apex within 125 ms of a beat earns one strong attack per beat, even between held shots. Power levels 0–4 use a bright strong ring; level 5 unlocks directional crests, level 10 increases their damage, level 15 splits the crest into two successive waves, and level 20 increases crest damage again. Five initial power upgrades cost 250 star dust total. Existing progress and upgrade levels remain saved.
 
-## Readable weapon cues
+Thin rings deal 4 × chapter weapon scale × power growth before existing overdrive/climax multipliers. Crest damage is budgeted above the maximum thin-ring damage in the same beat. Ordinary enemies gain 20% health in stages 1–2 and 35% thereafter; existing spawning, movement, attacks, shields, healing and boss behaviors remain. Heavy armor now responds to crests in place of laser. Existing rhythm interception still interrupts the telegraphed group.
 
-Threats stage on screen for two beats. A first-use swipe demonstration appears inside the main button while the battle clock waits. After completing it, only a faint upward motion appears when a weapon change is useful; side weapon icons never glow as recommendations. The lower rhythm capsule recommends wave or laser with a 2–1–now cue; keep the weapon if it is already correct. Matching weapon and beat interrupts the incoming group. Difficulty begins increasing from stage 3. The laser bass slide sounds only on a successful rhythm-enhanced switch, with a short dry cutoff.
+Support base damage is 25% of the baseline and no longer gains a per-streak damage multiplier. Streaks retain volley count, movement speed and penetration growth. Passive overheat energy and non-directional bonus bursts are reduced so holding cannot replace accurate beats.
 
-## Rhythm campaign (stages 1–100)
+## Verification
 
-Hold and swipe up to switch weapons without stopping fire. On-beat switches launch an enhanced first shot, limited to one per four beats and sharing beat credit with tapping/sway. Side warnings and tom fills announce beat-driven charges; waves suppress crowds, lasers counter heavy armor. Energy targets drop automatic six-second buffs. Open Rhythm Arsenal → Firepower Workshop to purchase capped permanent upgrades with star dust. Defeats retain kill salvage. Existing progress stays intact. All 100 stages use the rhythm director; the map shows encounter families.
-
-See docs/campaign-v18.md for the current campaign and arrangement changes.
+`node tests/run.mjs` checks current crest rules, growth, support damage, music/tails/render limits and 100 stages with hold, beat and 20%-miss strategies. Simulations use progressive upgrades and accurate target selection; they are not human playtesting. Historical laser and unattended-clear tests remain archived and are excluded from the current runner.
 
 ## Current gameplay
 

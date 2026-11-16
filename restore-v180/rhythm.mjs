@@ -1,4 +1,5 @@
-import {campaignFor} from './campaign.mjs?v=1.8.0';
+import {campaignFor} from './campaign.mjs?v=1.8.1';
+const healthScale=level=>level<3?1.2:1.35;
 // One score drives music accents, warnings and enemy waves in the first ten stages.
 export function cueAt(level,beat,climaxBeat=64){
  if(beat<8)return null;
@@ -19,20 +20,20 @@ export class RhythmDirector{
  // Do not replay missed waves after a pause or a clock correction.
  const cue=cueAt(b.c.level,beat,Math.round(b.arrangement.climaxStart/b.beatDuration));
  if(beat%4===2){const next=cueAt(b.c.level,beat+2,Math.round(b.arrangement.climaxStart/b.beatDuration));if(next&&b.spawnIntensity()>=.7&&b.t+2*b.beatDuration<b.arrangement.spawnEnd){
-  this.telegraph={...next,weapon:next.heavy?'laser':'wave',targetBeat:beat+2,matched:false};this.stageAssault(this.telegraph);b.emit('assaultWarning',{...this.telegraph,until:(beat+2)*b.beatDuration});
+  this.telegraph={...next,weapon:'wave',targetBeat:beat+2,matched:false};this.stageAssault(this.telegraph);b.emit('assaultWarning',{...this.telegraph,until:(beat+2)*b.beatDuration});
  }}
- if(beat%2===0){const count=Math.round(this.plan.swarmCount*(this.plan.dense?1.2:this.plan.breath?.8:1)*(b.musicPhase==='climax'?1.5:1)*b.spawnIntensity());for(let i=0;i<count;i++){const e=b.spawn(i%5===0?'runner':'drone',0);if(e){e.rhythmRole='swarm';e.hp=e.maxHp=this.plan.swarmHp;e.speed*=1.12;
+ if(beat%2===0){const count=Math.round(this.plan.swarmCount*(this.plan.dense?1.2:this.plan.breath?.8:1)*(b.musicPhase==='climax'?1.5:1)*b.spawnIntensity());for(let i=0;i<count;i++){const e=b.spawn(i%5===0?'runner':'drone',0);if(e){e.rhythmRole='swarm';e.hp=e.maxHp=this.plan.swarmHp*healthScale(b.c.level);e.speed*=1.12;
  if(this.plan.split&&i===2&&beat%8===0)e.type='splitter';
  if(this.plan.repair&&i===3&&beat%16===0){e.type='healer';e.hp=e.maxHp*=2;}
  }}}
  if(!cue||beat%4!==0||b.spawnIntensity()<.7)return;
 
- if(cue.energy){const e=b.spawn('bomb',0,{x:b.cx,y:85});if(e){e.rhythmRole='energy';e.hp=e.maxHp=35+b.c.level*3;e.reward=['pierce','push','rush'][Math.floor(beat/24)%3];e.speed*=.65;}}
+ if(cue.energy){const e=b.spawn('bomb',0,{x:b.cx,y:85});if(e){e.rhythmRole='energy';e.hp=e.maxHp=(35+b.c.level*3)*healthScale(b.c.level);e.reward=['pierce','push','rush'][Math.floor(beat/24)%3];e.speed*=.65;}}
  }
  stageAssault(cue){const b=this.b,sides=cue.side===3?[1,2]:[cue.side];
  for(const side of sides){const count=this.plan.assaultCount;for(let i=0;i<count;i++){
   const e=b.spawn(cue.heavy&&i===0?'tank':b.c.level>=3?'runner':'drone',side);if(!e)continue;
-  e.rhythmRole=cue.heavy&&i===0?'heavy':b.c.level>=3?'charger':'swarm';e.hp=e.maxHp=e.rhythmRole==='heavy'?this.plan.heavyHp:e.rhythmRole==='charger'?this.plan.chargerHp:16;
+  e.rhythmRole=cue.heavy&&i===0?'heavy':b.c.level>=3?'charger':'swarm';e.hp=e.maxHp=(e.rhythmRole==='heavy'?this.plan.heavyHp:e.rhythmRole==='charger'?this.plan.chargerHp:16)*healthScale(b.c.level);
   e.speed*= (e.rhythmRole==='heavy'?1.5:3.1)/Math.max(1,b.c.speedScale/1.45);e.damage=this.plan.damage;
   if(this.plan.shield&&cue.heavy&&i===0){e.type='shield';e.guard=45+this.plan.chapter*6;}
   e.echo=this.plan.slot===6&&i%2===1;e.weave=this.plan.weave&&this.plan.slot===5;e.phase=0;e.chargedBeat=cue.targetBeat-4;e.readyBeat=cue.targetBeat;e.cohort=cue.targetBeat;e.x=side===1?e.radius+10:b.w-e.radius-10;
@@ -56,7 +57,7 @@ export class RhythmDirector{
  if(e.slowUntil>b.t)speed*=.7;
  e.x+=Math.cos(a)*speed*dt;e.y+=Math.sin(a)*speed*dt;
  }
- multiplier(e,kind){if(this.active('pierce'))return 1.2;if(e.rhythmRole==='heavy')return kind==='laser'?1.65:kind==='wave'?.38:1;return 1;}
+ multiplier(e,kind){if(this.active('pierce'))return 1.2;if(e.rhythmRole==='heavy')return kind==='crest'?1.65:kind==='wave'?.38:1;return 1;}
  push(e,perfect,kind){const b=this.b;if(e.boss||kind==='blast'||kind==='support'||e.hp<=0||b.t<(e.pushAt||0))return;const a=Math.atan2(e.y-b.cy,e.x-b.cx),f=b.aim?Math.max(0,Math.cos(a-Math.atan2(b.aim.y,b.aim.x))):0;const amount=(kind==='wave'?4:2)*(perfect?2:1)*(1+f*1.8)*(this.active('push')?3:1)*(e.rhythmRole==='heavy'?.2:1);e.pushAt=b.t+.14;e.x=Math.max(e.radius,Math.min(b.w-e.radius,e.x+Math.cos(a)*amount));e.y=Math.max(80,e.y+Math.sin(a)*amount);e.slowUntil=b.t+.16;}
  killed(e){if(e.rhythmRole!=='energy')return;this.buff=e.reward;this.buffUntil=this.b.t+6;this.picked++;this.b.emit('pickup',{kind:this.buff});}
  active(kind){return this.buff===kind&&this.b.t<this.buffUntil;}
