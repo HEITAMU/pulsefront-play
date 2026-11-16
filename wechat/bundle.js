@@ -1,6 +1,7 @@
 'use strict';
 const factories={
 "wechat/src/main.mjs":function(require,module,exports){
+const {FirstLesson}=require("tutorial.mjs");
 const {Battle,aimAngleFor}=require("engine.mjs");
 const {Renderer}=require("renderer.mjs");
 const {Soundtrack}=require("audio.mjs");
@@ -24,11 +25,11 @@ class WechatGame {
  }
  persist(){try{this.wx.setStorageSync('pulsefront-save-v1',this.save);}catch{this.notice='进度保存失败，请检查设备空间';}}
  resize(){const info=this.wx.getWindowInfo?.()||this.wx.getSystemInfoSync();this.w=info.windowWidth;this.h=info.windowHeight;const capsule=this.wx.getMenuButtonBoundingClientRect?.();this.top=Math.max(info.safeArea?.top||20,capsule?.bottom||40)+12;this.bottom=Math.max(12,this.h-(info.safeArea?.bottom||this.h));this.renderer.resize(this.w,this.h,this.save.settings.lite);this.battle?.resize(this.w,this.h);}
- async start(level){if(this.ads.pending)return;await this.audio.unlock();this.save.seen=true;this.persist();this.notice='';this.release();this.runId='wx-'+Date.now()+'-'+Math.random().toString(36).slice(2);this.receipt=null;this.salvaged=0;this.battle=new Battle(level,{width:this.w,height:this.h,tempo:getTrack(level).bpm,seed:Date.now()%999,supports:this.save.support.equipped,motions:this.save.support.motions,growth:this.save.growth,finisher:'wave',emit:(t,d)=>this.event(t,d)});this.mode='playing';this.page='battle';this.renderer.fx=[];this.renderer.texts=[];this.renderer.setChapter(this.battle.c.chapter);this.audio.start(level);this.last=0;}
+ async start(level,trained=false){this.lesson=level===1&&!trained?new FirstLesson():null;if(this.ads.pending)return;await this.audio.unlock();this.save.seen=true;this.persist();this.notice='';this.release();this.runId='wx-'+Date.now()+'-'+Math.random().toString(36).slice(2);this.receipt=null;this.salvaged=0;this.battle=new Battle(level,{width:this.w,height:this.h,tempo:getTrack(level).bpm,seed:Date.now()%999,supports:this.save.support.equipped,motions:this.save.support.motions,growth:this.save.growth,finisher:'wave',emit:(t,d)=>this.event(t,d)});this.mode='playing';this.page='battle';this.renderer.fx=[];this.renderer.texts=[];this.renderer.setChapter(this.battle.c.chapter);this.audio.start(level);this.last=0;}
  event(type,data){
   this.renderer.event(type,data);
   if(['fire','hurt','bossDown','overdrive','pickup'].includes(type))this.audio.fx(type,data);
-  if(type==='perfect'){this.audio.fx('strong');this.hitAt=this.clock;}
+  if(type==='perfect'){this.lesson?.perfect();this.audio.fx('strong');this.hitAt=this.clock;}
   if(type==='supportProgress'){const stat=this.save.support.stats[data.id];if(stat)stat[data.metric]+=data.amount;}
   if(type==='supportBurst')this.audio.fx('support',{rank:data.rank});
   if(type==='finish'){
@@ -43,12 +44,12 @@ class WechatGame {
  home(){if(this.ads.pending)return;this.release();this.audio.stop();this.battle=null;this.mode='home';this.page='home';this.renderer.setChapter(0);this.notice='';this.persist();}
  release(){this.pointer=null;this.sway.reset();if(this.battle){this.battle.held=false;this.battle.aim=null;}}
  aim(t){const b=this.battle,x=(t.clientX-b.cx)/75,y=(t.clientY-b.cy)/75;const a=aimAngleFor({x,y:Math.min(-.08,y)});b.aim=Math.hypot(x,y)<.25?null:{x:Math.cos(a),y:Math.sin(a)};return x;}
- touchStart(e){if(this.ads.pending)return;const t=e.changedTouches?.[0]||e.touches?.[0];if(!t)return;this.audio.unlock();if(this.mode==='playing'&&Math.hypot((t.clientX-this.battle.cx)/93,(t.clientY-this.battle.cy)/((t.clientY<this.battle.cy)?100:83))<=1){if(this.pointer!==null)return;this.pointer=t.identifier;this.battle.rhythmTime=this.audio.position(this.battle.t);this.sway.reset(this.aim(t),this.battle.rhythmTime);this.battle.setHeld(true,this.audio.phase(this.battle.phase()));return;}
+ touchStart(e){if(this.ads.pending)return;const t=e.changedTouches?.[0]||e.touches?.[0];if(!t)return;this.audio.unlock();if(this.mode==='playing'&&Math.hypot((t.clientX-this.battle.cx)/93,(t.clientY-this.battle.cy)/((t.clientY<this.battle.cy)?100:83))<=1){if(this.pointer!==null)return;this.pointer=t.identifier;this.lesson?.down((t.clientX-this.battle.cx)/75);this.battle.rhythmTime=this.audio.position(this.battle.t);this.sway.reset(this.aim(t),this.battle.rhythmTime);this.battle.setHeld(true,this.audio.phase(this.battle.phase()));return;}
   const button=[...this.buttons].reverse().find(b=>!b.disabled&&t.clientX>=b.x&&t.clientX<=b.x+b.w&&t.clientY>=b.y&&t.clientY<=b.y+b.h);if(button){this.audio.fx('ui');button.fn();}}
- touchMove(e){if(this.pointer===null||this.mode!=='playing')return;const t=e.touches.find(t=>t.identifier===this.pointer);if(!t)return;const time=this.audio.position(this.battle.t),peak=this.sway.move(this.aim(t),time);if(peak&&time-peak.time<=.22)this.battle.swayBeat(peak.time);}
+ touchMove(e){if(this.pointer===null||this.mode!=='playing')return;const t=e.touches.find(t=>t.identifier===this.pointer);if(!t)return;this.lesson?.move((t.clientX-this.battle.cx)/75);const time=this.audio.position(this.battle.t),peak=this.sway.move(this.aim(t),time);if(peak&&time-peak.time<=.22)this.battle.swayBeat(peak.time);}
  touchEnd(e){if((e.changedTouches||[]).some(t=>t.identifier===this.pointer))this.release();}
  async doubleReward(){if(!this.receipt||this.receipt.bonus||!this.ads.available)return;const run=this.runId;this.audio.stop();this.notice='正在加载广告…';const result=await this.ads.reward();if(run!==this.runId)return;if(result.earned){awardDouble(this.save.economy,run);this.persist();this.notice='双倍星屑已到账';}else this.notice=result.status==='cancelled'?'未完整观看，基础星屑已保留':'暂无可用广告，基础星屑已保留';}
- frame(now){const dt=Math.max(0,Math.min(.05,(now-(this.last||now))/1000));this.last=now;if(this.hidden)return;this.clock+=dt;if(this.mode==='playing'){this.battle.rhythmTime=this.audio.position(this.battle.t);this.battle.step(dt,this.audio.phase(this.battle.phase()));}this.renderer.update(dt);this.renderer.skin=SKINS.find(s=>s.id===this.save.economy.equipped&&s.id!=='classic')||null;this.renderer.render(this.battle,this.clock,this.audio.phase(this.battle?.phase()||0),!this.battle);this.draw();}
+ frame(now){const dt=Math.max(0,Math.min(.05,(now-(this.last||now))/1000));this.last=now;if(this.hidden)return;this.clock+=dt;if(this.mode==='playing'){this.battle.rhythmTime=this.audio.position(this.battle.t);if(this.lesson?.done){this.lesson=null;this.start(1,true);}else{this.battle.step(dt*(this.lesson?this.lesson.tick(dt,this.pointer!==null):1),this.audio.phase(this.battle.phase()));if(this.lesson){this.battle.hp=100;this.battle.t=Math.min(this.battle.t,10);if(this.audio.position(0)>24)this.audio.start(1);}}}this.renderer.update(dt);this.renderer.skin=SKINS.find(s=>s.id===this.save.economy.equipped&&s.id!=='classic')||null;this.renderer.render(this.battle,this.clock,this.audio.phase(this.battle?.phase()||0),!this.battle);this.draw();}
  text(s,x,y,size=16,color='#e6eadb',align='left'){const c=this.renderer.ctx;c.fillStyle=color;c.font=`${size>=25?'600 ':''}${size}px sans-serif`;c.textAlign=align;c.textBaseline='middle';c.fillText(s,x,y);}
  box(x,y,w,h,fill='#152630ee',stroke='#8fa7a250'){const c=this.renderer.ctx;c.beginPath();c.roundRect(x,y,w,h,18);c.fillStyle=fill;c.fill();c.strokeStyle=stroke;c.lineWidth=1;c.stroke();}
  button(label,y,fn,{x=22,w=this.w-44,h=48,primary=false,disabled=false}={}){this.box(x,y,w,h,disabled?'#111b24ee':primary?'#ced8c2':'#172833ee',primary?'#eff4d7':'#94a5a25a');this.text(label,x+w/2,y+h/2,15,disabled?'#596570':primary?'#15222a':'#dce6df','center');this.buttons.push({x,y:this.hitScale?this.hitOrigin+(y-this.hitOrigin)*this.hitScale:y,w,h:h*(this.hitScale||1),fn,disabled});}
@@ -66,7 +67,7 @@ class WechatGame {
  c.restore();this.hitScale=null;if(!['result','pause'].includes(this.page))this.button('返回',this.h-this.bottom-60,()=>this.back());}
  if(this.notice)this.text(this.notice,this.w/2,this.h-this.bottom-82,12,'#e8d8a8','center');c.restore();}
  drawHome(){this.text('PULSEFRONT',26,this.top+15,13,'#c1d0d4');this.text('脉冲',28,this.top+100,44);this.text('防线.',28,this.top+152,44);this.text('踩节拍，点亮星海。',30,this.top+203,13,'#96acb7');this.text('◇ '+this.save.economy.coins,this.w-26,this.top+15,16,'#e8d8a8','right');const y=Math.min(this.h-this.bottom-234,Math.max(this.top+265,this.h-this.bottom-285));this.button('出击 · 第 '+this.save.unlocked+' / 100 关',y,()=>this.save.seen?this.start(this.save.unlocked):this.page='guide',{primary:true});this.button('火力工坊',y+62,()=>this.page='growth',{w:(this.w-54)/2});this.button('律动装配',y+62,()=>this.page='support',{x:this.w/2+5,w:(this.w-54)/2});this.button('星域地图',y+124,()=>{this.mapGroup=Math.floor((this.save.unlocked-1)/10);this.page='map';},{w:(this.w-54)/2});this.button('机库外观',y+124,()=>this.page='skins',{x:this.w/2+5,w:(this.w-54)/2});this.button('声音与操作',y+186,()=>this.page='settings');}
- drawBattle(){const b=this.battle,c=this.renderer.ctx;this.box(14,this.top,this.w-82,53,'#17232de8');this.text(String(b.c.level).padStart(2,'0')+' /100',28,this.top+27,19);this.text(Math.max(0,Math.ceil(b.c.duration-b.t))+'s',this.w*.43,this.top+27,18,'#e9dfb8');this.text('◇ '+Math.ceil(b.hp),this.w-82,this.top+27,17,'#bfe5d6','right');this.button('暂停',this.top,()=>this.pause(),{x:this.w-58,w:44,h:53});
+ drawBattle(){if(this.lesson){const y=this.h*.3;this.box(16,y,this.w-32,116,'#132b32ef','#e9e1a8');this.text(this.lesson.title,this.w/2,y+30,22,'#ffe7a5','center');this.text(this.lesson.detail,this.w/2,y+66,13,'#e4f3de','center');if(this.pointer===null)this.text('子弹时间 · 等你操作',this.w/2,y+94,13,'#bacfd5','center');}const b=this.battle,c=this.renderer.ctx;this.box(14,this.top,this.w-82,53,'#17232de8');this.text(String(b.c.level).padStart(2,'0')+' /100',28,this.top+27,19);this.text(Math.max(0,Math.ceil(b.c.duration-b.t))+'s',this.w*.43,this.top+27,18,'#e9dfb8');this.text('◇ '+Math.ceil(b.hp),this.w-82,this.top+27,17,'#bfe5d6','right');this.button('暂停',this.top,()=>this.pause(),{x:this.w-58,w:44,h:53});
   const cx=b.cx,cy=b.cy,r=this.pointer===null?75:73,flash=this.clock-(this.hitAt??-10)<.18;
   c.save();const g=c.createRadialGradient(cx-22,cy-33,2,cx,cy,r);g.addColorStop(0,flash?'#577c78':'#375563');g.addColorStop(1,'#112632');c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();c.strokeStyle=flash?'#ecffd3':'#bfbd91';c.lineWidth=flash?3:1.5;c.stroke();c.beginPath();c.arc(cx,cy,r-5,0,Math.PI*2);c.strokeStyle='#aaccc331';c.lineWidth=1;c.stroke();c.restore();this.text('P U L S E  E N G I N E',cx,cy-41,8,'#8fa4aa','center');this.text('开 火',cx,cy,30,'#f0dfa9','center');this.text(b.aim?(b.aim.x<-.3?'← 左侧加火力':b.aim.x>.3?'右侧加火力 →':'↑ 正前方加火力'):'踩拍强化',cx,cy+34,12,'#eadfb5','center');
   const cue=b.director?.cueState(),label=b.clearing?'星域已清':cue?(cue.status==='matched'?'✓ 节拍压制':(cue.heavy?'重甲':'群袭')+' · 踩拍 '+(cue.status==='hit'?'现在！':cue.count+'拍后')):'副炮 ×'+b.support.rank+' · '+b.support.progress()+'/3';this.box(cx-105,cy-132,210,30,'#1e2c34db');this.text(label,cx,cy-117,13,'#dcebcf','center');this.text(getTrack(b.c.level).bpm+' BPM',this.w-20,cy-155,10,'#768c96','right');c.fillStyle='#20313e';c.fillRect(70,this.h-this.bottom-28,this.w-140,3);c.fillStyle='#dbc99a';c.fillRect(70,this.h-this.bottom-28,(this.w-140)*Math.min(1,(b.energy||0)/100),3);this.text('过热',26,this.h-this.bottom-27,10,'#98a7ae');}
@@ -77,6 +78,20 @@ class WechatGame {
 }
 
 Object.assign(exports,{WechatGame});
+},
+"tutorial.mjs":function(require,module,exports){
+class FirstLesson {
+ constructor(){this.stage=0;this.taps=0;this.hits=0;this.min=0;this.max=0;this.held=0;}
+ down(x){if(this.stage===0&&++this.taps>=3){this.stage=1;this.min=this.max=x;}else if(this.stage===1){this.min=this.max=x;this.held=0;}}
+ move(x){if(this.stage!==1)return;this.min=Math.min(this.min,x);this.max=Math.max(this.max,x);if(this.held>=.35&&this.max-this.min>=.9)this.stage=2;}
+ tick(dt,pressed){if(pressed)this.held+=dt;return pressed?1:.06;}
+ perfect(){if(this.stage===2&&++this.hits>=3)this.stage=3;}
+ get done(){return this.stage===3;}
+ get title(){return ['点按大按钮开火','按住按钮，左右滑动','尝试跟着节拍开火！','学会了！'][this.stage];}
+ get detail(){return [`点按 ${Math.min(3,this.taps)} / 3 次`,'手指保持按住，从左滑到右',`跟着亮起的鼓点点按 · ${this.hits} / 3 次`,''][this.stage];}
+}
+
+Object.assign(exports,{FirstLesson});
 },
 "engine.mjs":function(require,module,exports){
 const {RhythmDirector}=require("rhythm.mjs");

@@ -39,3 +39,5 @@
 
 /* Keep the wave visible behind side weapon controls. */
 .weapon,.weapon.selected{background:transparent;border-color:transparent;box-shadow:none}
+
+#first-lesson{position:absolute;z-index:12;top:30%;left:18px;right:18px;text-align:center;pointer-events:none;padding:22px 8px;border-radius:22px;background:#10232be8;border:2px solid #d5ecc0;box-shadow:0 0 35px #b8efd333}#first-lesson strong{display:block;font-size:25px;color:#f4e3a3}#first-lesson span{display:block;margin-top:12px;font-size:15px;color:#e1f1e9}#first-lesson small{display:block;height:18px;margin-top:10px;color:#b3ccd4}#first-lesson.beat-now{border-color:#fff2b6;box-shadow:0 0 45px #d8f7b955;transform:scale(1.025)}
