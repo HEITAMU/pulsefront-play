@@ -5,7 +5,7 @@ import {SUPPORTS,MOTIONS,CHALLENGES,normalizeSupport,unlockedMotion,equipSupport
 import {SwayGesture} from './sway.mjs?v=1.8.0';
 import {Battle,CHAPTERS,BEAT,VERSION} from './engine.mjs?v=1.8.0';
 import {Soundtrack} from './audio.mjs?v=1.8.0';
-import {Renderer} from './renderer.mjs?v=1.8.0-fullring1';
+import {Renderer} from './renderer.mjs?v=1.8.0-fullcrest1';
 import {getTrack,STYLES} from './music.mjs?v=1.8.0';
 import {SKINS,normalizeEconomy,awardClear,awardDouble,buySkin,buyRevive,REVIVE_COST} from './economy.mjs?v=1.8.0';
 import {RewardedAds} from './ads.mjs?v=1.8.0';
