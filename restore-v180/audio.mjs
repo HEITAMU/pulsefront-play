@@ -1,13 +1,13 @@
-import {cueAt} from './rhythm.mjs?v=1.8.1';
-import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.8.1';
-import {getTrack,frequency,stepTime} from './music.mjs?v=1.8.1';
+import {cueAt} from './rhythm.mjs?v=1.8.2';
+import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.8.2';
+import {getTrack,frequency,stepTime} from './music.mjs?v=1.8.2';
 export class Soundtrack {
  constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.generation=0;}
  async unlock(){
   try{
    if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;this.ctx=new AC({latencyHint:'interactive'});this.setup(this.ctx);}
    if(this.ctx.state==='suspended')await this.ctx.resume();return this.ctx.state==='running';
-  }catch{return false;}
+  }catch{this.ctx=null;return false;}
  }
  setup(ctx){
   this.ctx=ctx;this.master=ctx.createGain();this.master.gain.value=this.muted?0:this.volume;this.music=ctx.createGain();this.effects=ctx.createGain();this.music.gain.value=this.musicVolume;this.effects.gain.value=this.fxVolume;this.music.connect(this.master);this.effects.connect(this.master);

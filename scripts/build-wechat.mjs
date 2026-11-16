@@ -1,0 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
+const root=path.resolve(import.meta.dirname,'..'), modules=new Map();
+function add(file){file=path.resolve(file);const id=path.relative(root,file).replaceAll('\\','/');if(modules.has(id))return id;modules.set(id,'');let source=fs.readFileSync(file,'utf8');source=source.replace(/import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"];?/g,(_,names,ref)=>{const dep=add(path.resolve(path.dirname(file),ref.split('?')[0]));return `const {${names}}=require(${JSON.stringify(dep)});`;});const exports=[...source.matchAll(/export\s+(?:const|class|function)\s+(\w+)/g)].map(m=>m[1]);source=source.replace(/export\s+(?=const|class|function)/g,'');if(/\b(?:import|export)\s*[{*]/.test(source))throw Error('Unsupported module syntax '+id);modules.set(id,source+'\nObject.assign(exports,{'+exports.join(',')+'});');return id;}
+const entry=add(path.join(root,'wechat/src/main.mjs'));
+const out=`'use strict';\nconst factories={\n${[...modules].map(([id,s])=>JSON.stringify(id)+':function(require,module,exports){\n'+s+'\n}').join(',\n')}\n};\nconst cache={};function load(id){if(cache[id])return cache[id].exports;const m={exports:{}};cache[id]=m;factories[id](load,m,m.exports);return m.exports;}\nmodule.exports=load(${JSON.stringify(entry)});\n`;
+fs.writeFileSync(path.join(root,'wechat/bundle.js'),out);console.log(`WeChat bundle: ${modules.size} modules / ${Buffer.byteLength(out)} bytes`);

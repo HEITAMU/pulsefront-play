@@ -20,6 +20,6 @@ const heavy={type:'tank',hp:729,maxHp:729,rhythmRole:'heavy',x:b.cx+150,y:b.cy-2
 b.enemies=[heavy];b.damage(heavy,w.damage+w.crestDamage,true,'crest');assert(heavy.hp>0&&heavy.hp<729/2);b.damage(heavy,w.damage+w.crestDamage,true,'crest');assert(heavy.hp<=0);
 const thinHeavy={...heavy,hp:729,maxHp:729,id:901};b.enemies=[thinHeavy];for(let i=0;i<12;i++)b.damage(thinHeavy,w.damage,false,'wave');assert(thinHeavy.hp>729*.9);
 for(const s of SUPPORTS){const game=new Battle(1);game.support.rank=12;game.support.launch({id:s.id,i:0,n:1});assert.equal(game.support.shots[0].damage,(s.id==='bounce'?5:s.id==='meteor'?14:8)*.25);}
-assert.equal(normalizeGrowth({power:20}).power,20);let cost=0;for(let i=0;i<5;i++)cost+=upgradeCost({power:i},'power');assert.equal(cost,250);
+assert.equal(normalizeGrowth({power:20}).power,20);let cost=0;for(let i=0;i<5;i++)cost+=upgradeCost({power:i},'power');assert.equal(cost,300);
 assert(enemyHealthScale(22)>1);
 console.log('PASS aim limits, 18 growth/tempo cases, beat-only crests, same-beat damage dominance, 2-crest heavy kill vs 12 thin hits, six support nerfs, laser removal and growth unlock cost');

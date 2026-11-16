@@ -1,13 +1,13 @@
-import {campaignFor} from './campaign.mjs?v=1.8.1';
-import {UPGRADES,normalizeGrowth,upgradeCost,buyUpgrade,salvage} from './growth.mjs?v=1.8.1';
-import {SUPPORTS,MOTIONS,CHALLENGES,normalizeSupport,unlockedMotion,equipSupport,claimChallenges,SupportSystem} from './support.mjs?v=1.8.1';
-import {SwayGesture} from './sway.mjs?v=1.8.1';
-import {Battle,CHAPTERS,BEAT,VERSION,aimAngleFor} from './engine.mjs?v=1.8.1';
-import {Soundtrack} from './audio.mjs?v=1.8.1';
-import {Renderer} from './renderer.mjs?v=1.8.1';
-import {getTrack,STYLES} from './music.mjs?v=1.8.1';
-import {SKINS,normalizeEconomy,awardClear,awardDouble,buySkin,buyRevive,REVIVE_COST} from './economy.mjs?v=1.8.1';
-import {RewardedAds} from './ads.mjs?v=1.8.1';
+import {campaignFor} from './campaign.mjs?v=1.8.2';
+import {UPGRADES,normalizeGrowth,upgradeCost,buyUpgrade,salvage} from './growth.mjs?v=1.8.2';
+import {SUPPORTS,MOTIONS,CHALLENGES,normalizeSupport,unlockedMotion,equipSupport,claimChallenges,SupportSystem} from './support.mjs?v=1.8.2';
+import {SwayGesture} from './sway.mjs?v=1.8.2';
+import {Battle,CHAPTERS,BEAT,VERSION,aimAngleFor} from './engine.mjs?v=1.8.2';
+import {Soundtrack} from './audio.mjs?v=1.8.2';
+import {Renderer} from './renderer.mjs?v=1.8.2';
+import {getTrack,STYLES} from './music.mjs?v=1.8.2';
+import {SKINS,normalizeEconomy,awardClear,awardDouble,buySkin,buyRevive,REVIVE_COST} from './economy.mjs?v=1.8.2';
+import {RewardedAds} from './ads.mjs?v=1.8.2';
 const $=id=>document.getElementById(id);
 const app=$('app'),canvas=$('space'),renderer=new Renderer(canvas),audio=new Soundtrack(),ads=new RewardedAds();
 const sway=new SwayGesture();let firePointer=null;
@@ -29,7 +29,7 @@ let battle=null,mode='home',mapChapter=Math.floor((save.unlocked-1)/10),previous
 const ui={score:$('score'),hp:$('hp'),stageFill:$('stage-fill'),shield:$('shield-fill'),time:$('stage-time'),combo:$('combo'),comboNum:$('combo').querySelector('strong'),charge:$('charge-fill'),chargeLabel:$('charge-label'),chargeVal:$('charge-value'),boss:$('boss-hud'),bossFill:$('boss-fill'),bossPercent:$('boss-percent'),dots:[...document.querySelectorAll('.beat-dots i')]};
 $('support-home').onclick=()=>{uiClick();showSupport();};
 $('growth-home').onclick=()=>{uiClick();showGrowth();};
-function showGrowth(){showModal(`<div class="panel-header"><div><div class="eyebrow">FIREPOWER WORKSHOP</div><h2>把火力推上去。</h2></div><button class="close" id="growth-back" aria-label="返回律动装配">×</button></div><div class="wallet-line">✧ 星屑 <strong>${save.economy.coins}</strong></div><div class="challenge-list">${UPGRADES.map(u=>`<div class="challenge-card"><strong>${u.name} · Lv.${save.growth[u.id]}</strong><p>${u.text}</p><button class="secondary" data-upgrade="${u.id}" ${save.growth[u.id]>=u.max||save.economy.coins<upgradeCost(save.growth,u.id)?'disabled':''}>${save.growth[u.id]>=u.max?'已满级':upgradeCost(save.growth,u.id)+' 星屑 · 升级'}</button></div>`).join('')}</div><p class="map-caption">击破每8只怪回收1星屑，每局最多80。失败也保留。升级下次出击生效，关卡不会随升级涨血。</p>`,'火力工坊');$('growth-back').onclick=showSupport;$('panel').querySelectorAll('[data-upgrade]').forEach(el=>el.onclick=()=>{if(buyUpgrade(save.growth,save.economy,el.dataset.upgrade)){persist();refreshHome();audio.fx('ui');showGrowth();}});}
+function showGrowth(){showModal(`<div class="panel-header"><div><div class="eyebrow">FIREPOWER WORKSHOP</div><h2>把火力推上去。</h2></div><button class="close" id="growth-back" aria-label="返回律动装配">×</button></div><div class="wallet-line">✧ 星屑 <strong>${save.economy.coins}</strong></div><div class="challenge-list">${UPGRADES.map(u=>`<div class="challenge-card"><strong>${u.name} · Lv.${save.growth[u.id]}</strong><p>${u.text}</p><button class="secondary" data-upgrade="${u.id}" ${save.growth[u.id]>=u.max||save.economy.coins<upgradeCost(save.growth,u.id)?'disabled':''}>${save.growth[u.id]>=u.max?'已满级':upgradeCost(save.growth,u.id)+' 星屑 · 升级'}</button></div>`).join('')}</div><p class="map-caption">通关星屑包含击破回收，完整观看广告可领双倍。失败按击破数回收星屑。升级下次出击生效，关卡不会随升级涨血。</p>`,'火力工坊');$('growth-back').onclick=showSupport;$('panel').querySelectorAll('[data-upgrade]').forEach(el=>el.onclick=()=>{if(buyUpgrade(save.growth,save.economy,el.dataset.upgrade)){persist();refreshHome();audio.fx('ui');showGrowth();}});}
 function closeSupport(){supportPreview=null;if(mode==='result'&&battle)result(battle.results);else if(mode==='paused')showPause();else closeModal();}
 function showSupport(){
  if(mode==='playing')pauseGame();supportPreview=null;
@@ -83,8 +83,8 @@ function onEvent(type,data){
  if(type==='heal')renderer.label('护盾 +8',battle.cx,battle.cy-122,'#baffc6',12,.8);
  if(type==='cleared'){resetInput();banner('星域已清','',3500);}
  if(type==='finish'){
-  mode='result';activeRun.salvage=salvage(save.economy,activeRun.id,data.kills);activeRun.challengeRewards=claimChallenges(save.support,data,save.economy);persist();app.classList.remove('climax-active');resetInput();audio.finish(data.win);
-  if(data.win){activeRun.receipt=awardClear(save.economy,activeRun.id,data.level,data.stars,!save.stars[data.level]);save.stars[data.level]=Math.max(save.stars[data.level]||0,data.stars);save.best[data.level]=Math.max(save.best[data.level]||0,data.score);save.unlocked=Math.min(100,Math.max(save.unlocked,data.level+1));persist();}
+  mode='result';activeRun.salvage=data.win?0:salvage(save.economy,activeRun.id,data.kills);activeRun.challengeRewards=claimChallenges(save.support,data,save.economy);persist();app.classList.remove('climax-active');resetInput();audio.finish(data.win);
+  if(data.win){activeRun.receipt=awardClear(save.economy,activeRun.id,data.level,data.stars,!save.stars[data.level],data.kills);save.stars[data.level]=Math.max(save.stars[data.level]||0,data.stars);save.best[data.level]=Math.max(save.best[data.level]||0,data.score);save.unlocked=Math.min(100,Math.max(save.unlocked,data.level+1));persist();}
   resultTimer=setTimeout(()=>result(data),data.win?300:650);
  }
 }
@@ -93,7 +93,7 @@ function result(r,notice=''){
  const unlockedNow=r.win?SUPPORTS.find(s=>s.level===r.level+1):null;notice=notice||(unlockedNow?'已解锁 '+unlockedNow.name+' · 去律动装配搭配':activeRun.challengeRewards?.length?'挑战完成 · '+activeRun.challengeRewards.join('、')+' · +'+activeRun.challengeRewards.length*120+'星屑':'');
  const receipt=activeRun?.receipt,canRevive=!r.win&&!battle.revived&&!battle.timedOut;
  const adAction=ads.available&&(r.win&&receipt&&!receipt.bonus||canRevive);
- showModal(`<div class="result-level">SECTOR ${String(Math.floor((r.level-1)/10)+1).padStart(2,'0')} · STAGE ${String(r.level).padStart(2,'0')} / 100</div><div class="stars">${[1,2,3].map(n=>`<span${n>r.stars?' class="empty"':''}>✦</span>`).join('')}</div><h2 class="result-title">${title}</h2><div class="result-score">${r.score.toLocaleString()}</div><div class="result-metrics"><div><b>${r.kills}</b><span>击破</span></div><div><b>${r.perfects}</b><span>踩点强化</span></div><div><b>${r.maxCombo}</b><span>最高连击</span></div></div>${activeRun.salvage?`<p class="result-note">战斗回收 +${activeRun.salvage} 星屑 · 已保留</p>`:''}${receipt?`<div class="reward-receipt"><span>✧ 星屑</span><strong>+${receipt.base*(receipt.bonus?2:1)}</strong><small>${receipt.bonus?'双倍已领取':'已入账'}</small></div>`:''}<p class="result-note">${notice||(r.win?complete?'100 关全部打通。带着喜欢的音乐再来一局。':`剩余护盾 ${r.hp}% · 副炮成长 ×${r.supportRank||0}`:'对准来敌踩拍，波峰击破厚血怪物。')}</p>${!storageAvailable?'<p class="storage-notice">当前浏览器未允许保存进度，请保持页面打开。</p>':''}<button class="primary" id="result-next"><span>${r.win&&!complete?'下一关 · '+String(r.level+1).padStart(2,'0'):'再战本关'}</span><span class="arrow">↗</span></button>${adAction?`<button class="reward-ad" id="result-ad"><span class="ad-badge">广告</span>${r.win?'观看 · 再得 '+receipt.base+' 星屑':'观看 · 恢复 60 护盾续战'}</button>`:''}${canRevive?`<button class="secondary" id="coin-revive" ${save.economy.coins<REVIVE_COST?'disabled':''}>${REVIVE_COST} 星屑续战 · 当前 ${save.economy.coins}</button>`:''}<div class="result-links"><button id="result-map">星域地图</button><button id="result-support">律动装配</button><button id="result-hangar">机库外观</button><button id="result-home">主界面</button></div>`,'关卡结算');
+ showModal(`<div class="result-level">SECTOR ${String(Math.floor((r.level-1)/10)+1).padStart(2,'0')} · STAGE ${String(r.level).padStart(2,'0')} / 100</div><div class="stars">${[1,2,3].map(n=>`<span${n>r.stars?' class="empty"':''}>✦</span>`).join('')}</div><h2 class="result-title">${title}</h2><div class="result-score">${r.score.toLocaleString()}</div><div class="result-metrics"><div><b>${r.kills}</b><span>击破</span></div><div><b>${r.perfects}</b><span>踩点强化</span></div><div><b>${r.maxCombo}</b><span>最高连击</span></div></div>${activeRun.salvage?`<p class="result-note">战斗回收 +${activeRun.salvage} 星屑 · 已保留</p>`:''}${receipt?`<div class="reward-receipt"><span>✧ 星屑</span><strong>+${receipt.base*(receipt.bonus?2:1)}</strong><small>${receipt.bonus?'双倍已领取':'已入账'}</small></div>`:''}<p class="result-note">${notice||(r.win?complete?'100 关全部打通。带着喜欢的音乐再来一局。':`剩余护盾 ${r.hp}% · 副炮成长 ×${r.supportRank||0}`:'对准来敌踩拍，波峰击破厚血怪物。')}</p>${!storageAvailable?'<p class="storage-notice">当前浏览器未允许保存进度，请保持页面打开。</p>':''}<button class="primary" id="result-next"><span>${r.win&&!complete?'下一关 · '+String(r.level+1).padStart(2,'0'):'再战本关'}</span><span class="arrow">↗</span></button>${adAction?`<button class="reward-ad" id="result-ad"><span class="ad-badge">广告</span>${r.win?'看广告 ×2 · 再得 '+receipt.base+' 星屑':'观看 · 恢复 60 护盾续战'}</button>`:''}${canRevive?`<button class="secondary" id="coin-revive" ${save.economy.coins<REVIVE_COST?'disabled':''}>${REVIVE_COST} 星屑续战 · 当前 ${save.economy.coins}</button>`:''}<div class="result-links"><button id="result-map">星域地图</button><button id="result-support">律动装配</button><button id="result-hangar">机库外观</button><button id="result-home">主界面</button></div>`,'关卡结算');
  $('result-next').onclick=()=>launch(r.win&&!complete?r.level+1:r.level);$('result-map').onclick=()=>{mapChapter=Math.floor((r.level-1)/10);showMap();};$('result-home').onclick=goHome;$('result-hangar').onclick=showHangar;$('result-support').onclick=showSupport;
  if($('coin-revive'))$('coin-revive').onclick=()=>{if(!battle.revived&&battle.state==='lost'&&buyRevive(save.economy)){persist();reviveBattle(false);}};
  if($('result-ad'))$('result-ad').onclick=()=>requestReward(r.win?'clear_double':'revive',r);
@@ -121,7 +121,7 @@ async function requestReward(placement,r){
 }
 function showHangar(){
  const equipped=SKINS.find(s=>s.id===save.economy.equipped)||SKINS[0];
- showModal(`<div class="panel-header"><div><div class="eyebrow">HANGAR / 机库</div><h2>换个频率出场。</h2></div><button class="close" id="hangar-close" aria-label="关闭机库">×</button></div><div class="wallet-line"><span>✧ 星屑</span><strong>${save.economy.coins.toLocaleString()}</strong></div><div class="skin-grid">${SKINS.map(s=>{const owned=save.economy.owned.includes(s.id),using=s.id===equipped.id;return `<button class="skin-card ${using?'equipped':''}" data-skin="${s.id}" style="--swatch:${s.color}" ${!owned&&save.economy.coins<s.cost?'disabled':''}><span class="skin-orb"><i></i></span><strong>${s.name}</strong><small>${s.description}</small><b>${using?'使用中':owned?'换上':s.cost+' 星屑'}</b></button>`;}).join('')}</div><p class="map-caption">通关获得星屑，首次通关额外 +50。<br>外观改变炮台与火力颜色，不增加通关门槛。</p>`,'机库外观');
+ showModal(`<div class="panel-header"><div><div class="eyebrow">HANGAR / 机库</div><h2>换个频率出场。</h2></div><button class="close" id="hangar-close" aria-label="关闭机库">×</button></div><div class="wallet-line"><span>✧ 星屑</span><strong>${save.economy.coins.toLocaleString()}</strong></div><div class="skin-grid">${SKINS.map(s=>{const owned=save.economy.owned.includes(s.id),using=s.id===equipped.id;return `<button class="skin-card ${using?'equipped':''}" data-skin="${s.id}" style="--swatch:${s.color}" ${!owned&&save.economy.coins<s.cost?'disabled':''}><span class="skin-orb"><i></i></span><strong>${s.name}</strong><small>${s.description}</small><b>${using?'使用中':owned?'换上':s.cost+' 星屑'}</b></button>`;}).join('')}</div><p class="map-caption">通关获得星屑，首次通关奖励更多。<br>外观改变炮台与火力颜色，不增加通关门槛。</p>`,'机库外观');
  $('panel').querySelectorAll('[data-skin]').forEach(el=>el.onclick=()=>{if(buySkin(save.economy,el.dataset.skin)){persist();applySkin();refreshHome();audio.fx('ui');showHangar();}});
  $('hangar-close').onclick=()=>{if(mode==='result')result(battle.results);else if(mode==='paused')showPause();else closeModal();};
 }

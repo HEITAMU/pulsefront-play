@@ -1,0 +1,1 @@
+{"description":"脉冲防线 PULSEFRONT 1.8.2","projectname":"pulsefront","appid":"touristappid","compileType":"game","libVersion":"3.9.0","setting":{"es6":true,"minified":true,"urlCheck":true,"enhance":true},"packOptions":{"ignore":[{"type":"folder","value":"src"},{"type":"file","value":"README.md"}]}}

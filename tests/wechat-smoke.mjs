@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),{createCanvas,GlobalFonts}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/@napi-rs/canvas');
+GlobalFonts.registerFromPath('/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc','sans-serif');
+const handlers={},stored={};
+const wx={getWindowInfo:()=>({windowWidth:390,windowHeight:844,pixelRatio:1,safeArea:{top:47,bottom:810}}),getMenuButtonBoundingClientRect:()=>({bottom:79}),getStorageSync:k=>stored[k],setStorageSync:(k,v)=>stored[k]=JSON.parse(JSON.stringify(v)),onTouchStart:f=>handlers.start=f,onTouchMove:f=>handlers.move=f,onTouchEnd:f=>handlers.end=f,onTouchCancel:f=>handlers.cancel=f,onHide:f=>handlers.hide=f,onShow:f=>handlers.show=f,onWindowResize:f=>handlers.resize=f};
+const context={module:{exports:{}},document:{createElement:()=>createCanvas(1,1)},window:{devicePixelRatio:1},setInterval,clearInterval,setTimeout,clearTimeout,console};vm.createContext(context);vm.runInContext(fs.readFileSync('wechat/bundle.js','utf8'),context);const Game=context.module.exports.WechatGame,canvas=createCanvas(390,844),game=new Game(wx,canvas,{rewardedAdUnitId:''});
+game.frame(1000);fs.mkdirSync('/tmp/pulse-wechat',{recursive:true});fs.writeFileSync('/tmp/pulse-wechat/home.png',canvas.toBuffer('image/png'));
+game.save.growth={power:5,spread:10,support:0};await game.start(3);handlers.start({changedTouches:[{identifier:1,clientX:250,clientY:690}]});assert(game.battle.held);game.frame(1016);handlers.hide();assert.equal(game.mode,'paused');assert(!game.battle.held);handlers.show();assert.equal(game.mode,'paused');await game.resume();game.battle.shoot(0,true);for(let i=1;i<180;i++)game.frame(1100+i*16);fs.writeFileSync('/tmp/pulse-wechat/battle.png',canvas.toBuffer('image/png'));
+game.event('finish',{win:true,level:3,stars:3,kills:200,score:100,perfects:30,hp:80,supportGroups:3});game.frame(5000);fs.writeFileSync('/tmp/pulse-wechat/result.png',canvas.toBuffer('image/png'));assert(game.receipt.base>0);game.page='growth';game.frame(5016);fs.writeFileSync('/tmp/pulse-wechat/growth.png',canvas.toBuffer('image/png'));assert.equal(stored['pulsefront-save-v1'].growth.spread,10);game.audio.stop();
+wx.getWindowInfo=()=>({windowWidth:320,windowHeight:568,pixelRatio:1,safeArea:{top:20,bottom:556}});game.resize();for(const page of ['home','growth','result','support','map','guide']){game.page=page;game.frame(5020);assert(game.buttons.every(b=>b.y+b.h<=game.h-game.bottom+1),'overflow '+page);fs.writeFileSync('/tmp/pulse-wechat/small-'+page+'.png',canvas.toBuffer('image/png'));}
+console.log('PASS native canvas launch, all screens, touch/hold, lifecycle pause, resume, settlement and storage');
