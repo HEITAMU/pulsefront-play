@@ -1,11 +1,14 @@
-System.register(["cc"], function (exports_1, context_1) {
+System.register(["cc", "../ui/LabelClarity.js?v=4592cf42476a57b5"], function (exports_1, context_1) {
     "use strict";
-    var cc_1, DRAW_LIMITS, TAU, RAD_TO_DEG, clamp01, RadialPaint, NativeDraw2D;
+    var cc_1, LabelClarity_js_1, DRAW_LIMITS, TAU, RAD_TO_DEG, clamp01, RadialPaint, NativeDraw2D;
     var __moduleName = context_1 && context_1.id;
     return {
         setters: [
             function (cc_1_1) {
                 cc_1 = cc_1_1;
+            },
+            function (LabelClarity_js_1_1) {
+                LabelClarity_js_1 = LabelClarity_js_1_1;
             }
         ],
         execute: function () {
@@ -427,14 +430,13 @@ System.register(["cc"], function (exports_1, context_1) {
                     const m = this.state.matrix, p = this.point(x, y), size = Number(this.state.font.match(/([\d.]+)px/)?.[1]) || 14;
                     const label = slot.label;
                     label.string = String(text);
-                    label.fontSize = size;
-                    label.lineHeight = size * 1.25;
                     label.isBold = /bold|[6-9]00/.test(this.state.font);
                     label.color = this.color(this.state.fill);
                     slot.transform.setAnchorPoint(this.state.textAlign === 'center' ? .5 : this.state.textAlign === 'right' ? 1 : 0, .5);
                     slot.node.setPosition(p.x, -p.y + size * .32, 0);
                     slot.node.angle = -Math.atan2(m[1], m[0]) * RAD_TO_DEG;
-                    slot.node.setScale(Math.hypot(m[0], m[1]), Math.hypot(m[2], m[3]), 1);
+                    LabelClarity_js_1.configureLabelClarity(label, { fontSize: size, lineHeight: size * 1.25,
+                        scaleX: Math.hypot(m[0], m[1]), scaleY: Math.hypot(m[2], m[3]) });
                 }
             };
             exports_1("NativeDraw2D", NativeDraw2D);

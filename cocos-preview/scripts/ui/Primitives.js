@@ -1,6 +1,6 @@
-System.register(["cc"], function (exports_1, context_1) {
+System.register(["cc", "./LabelClarity.js?v=4592cf42476a57b5"], function (exports_1, context_1) {
     "use strict";
-    var cc_1, palette, Panel;
+    var cc_1, LabelClarity_js_1, palette, Panel;
     var __moduleName = context_1 && context_1.id;
     function color(hex, alpha = 1) {
         const c = new cc_1.Color();
@@ -58,6 +58,7 @@ System.register(["cc"], function (exports_1, context_1) {
         l.verticalAlign = cc_1.Label.VerticalAlign.TOP;
         l.enableWrapText = opts.wrap !== false;
         l.overflow = cc_1.Label.Overflow.SHRINK;
+        LabelClarity_js_1.configureLabelClarity(l, { fontSize: opts.size ?? 14, lineHeight: opts.lineHeight ?? Math.ceil((opts.size ?? 14) * 1.45), width: w, height: h });
         return l;
     }
     exports_1("text", text);
@@ -71,9 +72,35 @@ System.register(["cc"], function (exports_1, context_1) {
                 sprite.spriteFrame = frame; });
         }
         const hl = nodeAt(n, 'PressedGlow', 0, 0, w, h), hg = hl.addComponent(cc_1.Graphics);
-        rounded(hg, 1, 1, w - 2, h - 2, opts.radius ?? 10, '#cdffe723', '#d8fff0', 2);
+        hg.roundRect(-2, -h - 2, w + 4, h + 4, (opts.radius ?? 10) + 2);
+        hg.lineWidth = 6;
+        hg.strokeColor = color('#9cffdb', .2);
+        hg.stroke();
+        rounded(hg, 1, 1, w - 2, h - 2, opts.radius ?? 10, '#cdffe73d', '#e6fff1', 2);
         hl.active = false;
-        const label = text(n, title, opts.align === 'left' ? 14 : 5, (h - (opts.size ?? 13) * 1.5) / 2, w - (opts.align === 'left' ? 28 : 10), h * .8, { size: opts.size ?? 13, bold: !!opts.primary, color: opts.foreground ?? (opts.primary ? '#182e32' : palette.text), align: opts.align ?? 'center', wrap: false });
+        // Navigation is an independent vector icon: font fallback, text length and
+        // Label's fit rules must never hide, shrink or move the arrow into the title.
+        const hasArrow = opts.arrow ?? /↗\s*$/.test(title), caption = hasArrow ? title.replace(/\s*↗\s*$/, '') : title;
+        const foreground = opts.foreground ?? (opts.primary ? '#182e32' : palette.text);
+        const align = opts.align ?? (hasArrow && opts.primary ? 'left' : 'center');
+        const inset = align === 'left' ? (opts.primary ? 20 : 14) : 5;
+        const label = text(n, caption, inset, (h - (opts.size ?? 13) * 1.5) / 2, w - inset - (hasArrow ? 37 : inset), h * .8, { size: opts.size ?? 13, bold: !!opts.primary, color: foreground, align, wrap: false });
+        if (hasArrow) {
+            const size = opts.primary ? 18 : 11;
+            const arrow = nodeAt(n, 'NavigationArrow', w - (opts.primary ? 25 : 17), h / 2, size, size);
+            arrow.getComponent(cc_1.UITransform).setAnchorPoint(.5, .5);
+            const ag = arrow.addComponent(cc_1.Graphics), half = size / 2;
+            ag.lineCap = cc_1.Graphics.LineCap.ROUND;
+            ag.lineJoin = cc_1.Graphics.LineJoin.ROUND;
+            ag.strokeColor = color(opts.primary ? foreground : '#b6d3d4');
+            ag.lineWidth = opts.primary ? 2 : 1.6;
+            ag.moveTo(-half, -half);
+            ag.lineTo(half, half);
+            ag.moveTo(-half * .4, half);
+            ag.lineTo(half, half);
+            ag.lineTo(half, -half * .4);
+            ag.stroke();
+        }
         const opacity = n.addComponent(cc_1.UIOpacity);
         let enabled = opts.enabled !== false, down = false, origin = { x: 0, y: 0 };
         const reset = () => { down = false; hl.active = false; n.setScale(1, 1, 1); };
@@ -126,6 +153,9 @@ System.register(["cc"], function (exports_1, context_1) {
         setters: [
             function (cc_1_1) {
                 cc_1 = cc_1_1;
+            },
+            function (LabelClarity_js_1_1) {
+                LabelClarity_js_1 = LabelClarity_js_1_1;
             }
         ],
         execute: function () {

@@ -1,4 +1,4 @@
-System.register(["./campaign.js?v=e270a89589f99c03"], function (exports_1, context_1) {
+System.register(["./campaign.js?v=4592cf42476a57b5"], function (exports_1, context_1) {
     "use strict";
     var campaign_js_1, healthScale, SwitchGesture, RhythmDirector;
     var __moduleName = context_1 && context_1.id;

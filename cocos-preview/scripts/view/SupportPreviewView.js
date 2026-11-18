@@ -1,4 +1,4 @@
-System.register(["cc", "../core/support.js?v=e270a89589f99c03", "./NativeDraw2D.js?v=e270a89589f99c03"], function (exports_1, context_1) {
+System.register(["cc", "../core/support.js?v=4592cf42476a57b5", "./NativeDraw2D.js?v=4592cf42476a57b5"], function (exports_1, context_1) {
     "use strict";
     var cc_1, support_js_1, NativeDraw2D_js_1, SupportPreviewView;
     var __moduleName = context_1 && context_1.id;
