@@ -2,7 +2,7 @@ import {cueAt} from './rhythm.mjs?v=1.8.2';
 import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.8.2';
 import {getTrack,frequency,stepTime} from './music.mjs?v=1.8.2';
 export class Soundtrack {
- constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.effectNodes=new Set();this.generation=0;}
+ constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.effectNodes=new Set();this.generation=0;this.tutorialLoop=false;}
  async unlock(){
   try{
    if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;this.ctx=new AC({latencyHint:'interactive'});this.setup(this.ctx);}
@@ -47,10 +47,10 @@ export class Soundtrack {
   else if(i==='vibes'){this.tone(at,f,d*2.1,amp,'sine',undefined,undefined,bus,{pan:.2});this.tone(at,f*4,d*.28,amp*.16,'sine');}
   else if(i==='synth'){this.tone(at,f,d*1.25,bass?.27*v:amp*.8,'sawtooth',undefined,bass?600:2400,bus,{wah:true,q:2});this.tone(at,f,d,bass?.21*v:amp*.3,'sine');}
  }
- start(level=1,time=0){this.stop();this.track=getTrack(level);if(!this.ctx)return;this.music=this.ctx.createGain();this.music.connect(this.master);this.music.gain.setValueAtTime(0,this.ctx.currentTime);this.music.gain.linearRampToValueAtTime(this.musicVolume,this.ctx.currentTime+.18);this.running=true;this.origin=this.ctx.currentTime-time+.045;this.applyMusicEnvelope(true);this.step=Math.max(0,Math.floor(time/(this.track.beat/4)));this.schedule();this.timer=setInterval(()=>this.schedule(),25);}
- musicLevel(time){const a=arrangementFor(this.track.level,this.track.bpm);return this.musicVolume*Math.max(0,Math.min(1,(a.duration-time)/5));}
+ start(level=1,time=0,tutorial=false){this.stop();this.tutorialLoop=tutorial;this.track=getTrack(level);if(!this.ctx)return;this.music=this.ctx.createGain();this.music.connect(this.master);this.music.gain.setValueAtTime(0,this.ctx.currentTime);this.music.gain.linearRampToValueAtTime(this.musicVolume,this.ctx.currentTime+.18);this.running=true;this.origin=this.ctx.currentTime-time+.045;this.applyMusicEnvelope(true);this.step=Math.max(0,Math.floor(time/(this.track.beat/4)));this.schedule();this.timer=setInterval(()=>this.schedule(),25);}
+ musicLevel(time){if(this.tutorialLoop)return this.musicVolume;const a=arrangementFor(this.track.level,this.track.bpm);return this.musicVolume*Math.max(0,Math.min(1,(a.duration-time)/5));}
  applyMusicEnvelope(fadeIn=false){
-  if(!this.ctx||!this.music)return;const now=this.ctx.currentTime,a=arrangementFor(this.track.level,this.track.bpm),time=Math.max(0,now-this.origin),end=this.origin+a.duration,start=end-5,g=this.music.gain;
+  if(!this.ctx||!this.music)return;if(this.tutorialLoop){const now=this.ctx.currentTime,g=this.music.gain;g.cancelScheduledValues(now);g.setValueAtTime(fadeIn?0:this.musicVolume,now);if(fadeIn)g.linearRampToValueAtTime(this.musicVolume,now+.18);return;}const now=this.ctx.currentTime,a=arrangementFor(this.track.level,this.track.bpm),time=Math.max(0,now-this.origin),end=this.origin+a.duration,start=end-5,g=this.music.gain;
   g.cancelScheduledValues(now);g.setValueAtTime(fadeIn?0:this.musicLevel(time),now);
   if(fadeIn)g.linearRampToValueAtTime(this.musicLevel(time+.18),now+.18);
   if(start>now+.18)g.setValueAtTime(this.musicVolume,start);
@@ -69,7 +69,7 @@ export class Soundtrack {
   if(this.ctx.currentTime-this.origin-stepTime(t,this.step)>1)this.step=Math.floor((this.ctx.currentTime-this.origin)/(t.beat/4));
   while(this.origin+stepTime(t,this.step)<this.ctx.currentTime+.14){const at=this.origin+stepTime(t,this.step);if((!this.endingAt||at<this.endingAt)&&at>=this.ctx.currentTime-.012){
    const when=Math.max(at,this.ctx.currentTime),elapsed=stepTime(t,this.step),a=arrangementFor(t.level,t.bpm),section=sectionAt(elapsed,a),sub=this.step%16;
-   if(elapsed>=a.duration){this.step++;continue;}
+   if(elapsed>=a.duration){if(this.tutorialLoop){this.origin+=a.duration;this.step=0;continue;}this.step++;continue;}
    const beforeDrop=elapsed>=a.climaxStart-t.beat&&elapsed<a.climaxStart;
    for(const e of t.byStep[this.step%n]){
     if(beforeDrop&&e.instrument!=='snare'&&e.instrument!=='hat')continue;
