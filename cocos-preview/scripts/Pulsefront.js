@@ -1,4 +1,4 @@
-System.register(["cc", "./core/engine.js?v=5c8bccdeaafa8f53", "./core/music.js?v=5c8bccdeaafa8f53", "./core/audio.js?v=5c8bccdeaafa8f53", "./core/tutorial.js?v=5c8bccdeaafa8f53", "./core/sway.js?v=5c8bccdeaafa8f53", "./core/campaign.js?v=5c8bccdeaafa8f53", "./core/economy.js?v=5c8bccdeaafa8f53", "./core/growth.js?v=5c8bccdeaafa8f53", "./core/support.js?v=5c8bccdeaafa8f53", "./platform/Platform.js?v=5c8bccdeaafa8f53", "./view/BattleView.js?v=5c8bccdeaafa8f53", "./view/SupportPreviewView.js?v=5c8bccdeaafa8f53", "./ui/Primitives.js?v=5c8bccdeaafa8f53", "./ui/CannonButton.js?v=5c8bccdeaafa8f53"], function (exports_1, context_1) {
+System.register(["cc", "./core/engine.js?v=e270a89589f99c03", "./core/music.js?v=e270a89589f99c03", "./core/audio.js?v=e270a89589f99c03", "./core/tutorial.js?v=e270a89589f99c03", "./core/sway.js?v=e270a89589f99c03", "./core/campaign.js?v=e270a89589f99c03", "./core/economy.js?v=e270a89589f99c03", "./core/growth.js?v=e270a89589f99c03", "./core/support.js?v=e270a89589f99c03", "./platform/Platform.js?v=e270a89589f99c03", "./view/BattleView.js?v=e270a89589f99c03", "./view/SupportPreviewView.js?v=e270a89589f99c03", "./ui/Primitives.js?v=e270a89589f99c03", "./ui/CannonButton.js?v=e270a89589f99c03"], function (exports_1, context_1) {
     "use strict";
     var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -130,7 +130,7 @@ System.register(["cc", "./core/engine.js?v=5c8bccdeaafa8f53", "./core/music.js?v
                     cc_1.view.on('canvas-resize', this.onResize, this);
                     // Read-only diagnostics. No currency, progression, or input cheats in the shipped game.
                     globalThis.pulsefront = Object.freeze({
-                        version: engine_js_1.VERSION + '-cocos.1', engine: 'Cocos Creator 3.8.8',
+                        version: engine_js_1.VERSION + '-cocos.2', engine: 'Cocos Creator 3.8.8',
                         snapshot: () => ({ mode: this.mode, panel: this.panel?.root.name ?? null, ...this.battle?.snapshot(), lesson: this.lesson?.stage ?? null,
                             held: this.pressed, unlocked: this.save.unlocked, coins: this.save.economy.coins, completed: Object.keys(this.save.stars).length,
                             storageAvailable: Platform_js_1.storageAvailable, audio: { available: !!this.audio.ctx, state: this.audio.ctx?.state, running: this.audio.running, position: this.audio.position(this.musicElapsed) } }),
@@ -231,7 +231,7 @@ System.register(["cc", "./core/engine.js?v=5c8bccdeaafa8f53", "./core/music.js?v
                     const utilityY = groupY + groupH + 13, utilityW = (inner - 10) / 2;
                     Primitives_js_1.button(this.home, 'hangar', '◈   机库外观     ↗', pad, utilityY, utilityW, 45, () => this.showHangar(), { size: 11, fill: '#142531cf', radius: 12 });
                     Primitives_js_1.button(this.home, 'music', '♫   星际唱片机   ↗', pad + utilityW + 10, utilityY, utilityW, 45, () => this.showMusic(), { size: 11, fill: '#142531cf', radius: 12 });
-                    Primitives_js_1.text(this.home, 'v1.8.2 · C1', 26, h - 16 - this.safeBottom, 140, 13, { size: 7, color: '#68808b', wrap: false });
+                    Primitives_js_1.text(this.home, 'v1.8.2 · C2', 26, h - 16 - this.safeBottom, 140, 13, { size: 7, color: '#68808b', wrap: false });
                     this.labels.loading = Primitives_js_1.text(this.home, this.assetsLoaded ? '' : '正在载入星域…', 26, heroTop + 274, w - 52, 25, { size: 10, color: '#95b6bb' });
                 }
                 buildTop() {

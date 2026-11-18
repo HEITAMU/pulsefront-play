@@ -1,4 +1,4 @@
-System.register(["./rhythm.js?v=5c8bccdeaafa8f53", "../platform/Platform.js?v=5c8bccdeaafa8f53", "./arrangement.js?v=5c8bccdeaafa8f53", "./music.js?v=5c8bccdeaafa8f53"], function (exports_1, context_1) {
+System.register(["./rhythm.js?v=e270a89589f99c03", "../platform/Platform.js?v=e270a89589f99c03", "./arrangement.js?v=e270a89589f99c03", "./music.js?v=e270a89589f99c03"], function (exports_1, context_1) {
     "use strict";
     var rhythm_js_1, Platform_js_1, arrangement_js_1, music_js_1, Soundtrack;
     var __moduleName = context_1 && context_1.id;
