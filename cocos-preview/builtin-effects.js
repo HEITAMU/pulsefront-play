@@ -2,12 +2,12 @@
 // Shader math and blend modes follow official builtin-sprite/builtin-graphics effects.
 // Creator normally generates these descriptors through its effect importer.
 export async function registerBuiltinEffects(cc) {
-  const chunks = await (await fetch('./uniform-chunks.json')).json();
+  const chunks = await (await fetch('./uniform-chunks.json?v=5c8bccdeaafa8f53')).json();
   const { gfx, EffectAsset, Material, builtinResMgr } = cc;
   const clean = (s) => s.replace(/\/\/[^\n]*/g, '').replace(/#pragma[^\n]*/g, '').replace(/layout\([^)]*\)\s*/g, '');
   const globalBlock = clean(chunks['cc-global']);
   const localBlock = clean(chunks['cc-local']);
-  const uniforms = (block, gl3) => gl3 ? block : block.replace(/uniform\s+\w+\s*\{([\s\S]*?)\};/g, (_, body) => body.split(';').map(x => x.trim()).filter(Boolean).map(x => `uniform ${x};`).join('\n'));
+  const uniforms = (block, gl3) => gl3 ? block.replace(/uniform\s+(\w+)\s*\{/g, 'layout(std140) uniform $1 {') : block.replace(/uniform\s+\w+\s*\{([\s\S]*?)\};/g, (_, body) => body.split(';').map(x => x.trim()).filter(Boolean).map(x => `uniform ${x};`).join('\n'));
   const builtin = (blocks = [], textures = []) => ({ buffers: [], blocks: blocks.map(name => ({name, defines:[]})), samplerTextures: textures.map(name => ({name, defines:[]})), images: [] });
   const attr = (name, format, location) => ({ name, format, location, isNormalized: false, stream: 0, isInstanced: false, defines: [] });
   let serial = 54001;
@@ -27,7 +27,7 @@ export async function registerBuiltinEffects(cc) {
       let fragment = clear
         ? `precision highp float;${outDecl} void main(){${out}=vec4(1.0);}`
         : graphics
-          ? `${gl3 ? '' : '#extension GL_OES_standard_derivatives : enable\n'}precision highp float;${fi} vec4 v_color;${fi} float v_dist;${outDecl}\nvoid main(){float aa=fwidth(v_dist);float a=1.0-smoothstep(-aa,0.0,abs(v_dist)-1.0);vec4 c=v_color;c.rgb*=c.a;${out}=c*a;}`
+          ? `${gl3 ? '' : '#extension GL_OES_standard_derivatives : enable\n'}precision highp float;${fi} vec4 v_color;${fi} float v_dist;${outDecl}\nvoid main(){\n${gl3 ? 'float aa=fwidth(v_dist);' : '#ifdef GL_OES_standard_derivatives\nfloat aa=fwidth(v_dist);\n#else\nfloat aa=0.05;\n#endif'}\nfloat a=1.0-smoothstep(-aa,0.0,abs(v_dist)-1.0);vec4 c=v_color;c.rgb*=c.a;${out}=c*a;}`
           : `precision highp float;${fi} vec4 v_color;${fi} vec2 v_uv;${outDecl}\n#if USE_TEXTURE\nuniform sampler2D cc_spriteTexture;\n#endif\nvoid main(){vec4 c=v_color;\n#if USE_TEXTURE\nc*=${tex}(cc_spriteTexture,v_uv);\n#endif\n${out}=c;}`;
       return { vert: vertex, frag: fragment };
     };

@@ -1,4 +1,4 @@
-System.register(["cc", "./Primitives.js"], function (exports_1, context_1) {
+System.register(["cc", "./Primitives.js?v=5c8bccdeaafa8f53"], function (exports_1, context_1) {
     "use strict";
     var cc_1, Primitives_js_1, CannonButton;
     var __moduleName = context_1 && context_1.id;

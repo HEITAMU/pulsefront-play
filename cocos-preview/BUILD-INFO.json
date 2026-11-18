@@ -2,8 +2,10 @@
   "version": "1.8.2-cocos.1",
   "engine": "Cocos Creator runtime 3.8.8",
   "sourceProject": "pulsefront-cocos",
-  "sourceSha256": "106aa8c9fa33c743dc3df89bafb593ca6e563acbd7b11e053865fb24042e495a",
+  "sourceSha256": "5dfb1d416d042b86dbcf15a3a86a9f3cdb907c984a3ade6a9dc229eaefb3df3b",
   "hashInputs": "assets/scripts/**/*.ts + assets/Main.scene, sorted relative path + file bytes",
+  "runtimeSha256": "5c8bccdeaafa8f538da03a9e27274a1f870eb19d20d6a4831ca979d81565ba2b",
+  "cacheTag": "5c8bccdeaafa8f53",
   "engineSourceTag": "cocos/cocos-engine@v3.8.8",
   "buildSystem": "@cocos/ccbuild HTML5 + SystemJS + TypeScript",
   "creatorEditorExport": false

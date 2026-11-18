@@ -129,7 +129,9 @@ System.register(["cc"], function (exports_1, context_1) {
                     if (material)
                         material.overridePipelineStates({ blendState: { targets: [{
                                         blend: true,
-                                        blendSrc: cc_1.gfx.BlendFactor.SRC_ALPHA,
+                                        // Builtin Graphics premultiplies RGB by alpha in its fragment shader.
+                                        // Sprite textures keep straight alpha and need SRC_ALPHA blending.
+                                        blendSrc: target instanceof cc_1.Graphics ? cc_1.gfx.BlendFactor.ONE : cc_1.gfx.BlendFactor.SRC_ALPHA,
                                         blendDst: additive ? cc_1.gfx.BlendFactor.ONE : cc_1.gfx.BlendFactor.ONE_MINUS_SRC_ALPHA,
                                         blendSrcAlpha: cc_1.gfx.BlendFactor.ONE,
                                         blendDstAlpha: cc_1.gfx.BlendFactor.ONE_MINUS_SRC_ALPHA,
