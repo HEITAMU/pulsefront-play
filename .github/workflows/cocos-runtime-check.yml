@@ -17,13 +17,28 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Check out the published C2 visual baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 0b91b33d140170ed029c3f36c621930db32f5a77
+          path: baseline-c2
+          persist-credentials: false
       - name: Install browser test runtime
         run: npm install --prefix /tmp/pulsefront-browser-check playwright@1.62.1
-      - name: Check real Cocos startup in WebKit
+      - name: Capture C2 at the same phone pixel density
         env:
           NODE_PATH: /tmp/pulsefront-browser-check/node_modules
           LIBGL_ALWAYS_SOFTWARE: "1"
-        run: xvfb-run -a node tests/cocos-runtime-browser.cjs
+          COCOS_PREVIEW_DIR: baseline-c2/cocos-preview
+          COCOS_QA_OUTPUT: browser-check-results/c2
+          REQUIRE_NAVIGATION_ARROWS: "0"
+        run: xvfb-run -a node tests/cocos-retina-visual-check.cjs
+      - name: Verify C3 arrows and cannon feedback at DPR3
+        env:
+          NODE_PATH: /tmp/pulsefront-browser-check/node_modules
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          COCOS_QA_OUTPUT: browser-check-results/c3
+        run: xvfb-run -a node tests/cocos-retina-visual-check.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

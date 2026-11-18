@@ -1,4 +1,4 @@
-System.register(["cc", "./core/engine.js?v=e270a89589f99c03", "./core/music.js?v=e270a89589f99c03", "./core/audio.js?v=e270a89589f99c03", "./core/tutorial.js?v=e270a89589f99c03", "./core/sway.js?v=e270a89589f99c03", "./core/campaign.js?v=e270a89589f99c03", "./core/economy.js?v=e270a89589f99c03", "./core/growth.js?v=e270a89589f99c03", "./core/support.js?v=e270a89589f99c03", "./platform/Platform.js?v=e270a89589f99c03", "./view/BattleView.js?v=e270a89589f99c03", "./view/SupportPreviewView.js?v=e270a89589f99c03", "./ui/Primitives.js?v=e270a89589f99c03", "./ui/CannonButton.js?v=e270a89589f99c03"], function (exports_1, context_1) {
+System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v=4592cf42476a57b5", "./core/audio.js?v=4592cf42476a57b5", "./core/tutorial.js?v=4592cf42476a57b5", "./core/sway.js?v=4592cf42476a57b5", "./core/campaign.js?v=4592cf42476a57b5", "./core/economy.js?v=4592cf42476a57b5", "./core/growth.js?v=4592cf42476a57b5", "./core/support.js?v=4592cf42476a57b5", "./platform/Platform.js?v=4592cf42476a57b5", "./view/BattleView.js?v=4592cf42476a57b5", "./view/SupportPreviewView.js?v=4592cf42476a57b5", "./ui/Primitives.js?v=4592cf42476a57b5", "./ui/CannonButton.js?v=4592cf42476a57b5"], function (exports_1, context_1) {
     "use strict";
     var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -130,7 +130,7 @@ System.register(["cc", "./core/engine.js?v=e270a89589f99c03", "./core/music.js?v
                     cc_1.view.on('canvas-resize', this.onResize, this);
                     // Read-only diagnostics. No currency, progression, or input cheats in the shipped game.
                     globalThis.pulsefront = Object.freeze({
-                        version: engine_js_1.VERSION + '-cocos.2', engine: 'Cocos Creator 3.8.8',
+                        version: engine_js_1.VERSION + '-cocos.3', engine: 'Cocos Creator 3.8.8',
                         snapshot: () => ({ mode: this.mode, panel: this.panel?.root.name ?? null, ...this.battle?.snapshot(), lesson: this.lesson?.stage ?? null,
                             held: this.pressed, unlocked: this.save.unlocked, coins: this.save.economy.coins, completed: Object.keys(this.save.stars).length,
                             storageAvailable: Platform_js_1.storageAvailable, audio: { available: !!this.audio.ctx, state: this.audio.ctx?.state, running: this.audio.running, position: this.audio.position(this.musicElapsed) } }),
@@ -215,23 +215,24 @@ System.register(["cc", "./core/engine.js?v=e270a89589f99c03", "./core/music.js?v
                     const wallet = Primitives_js_1.card(this.home, 'Wallet', w - 122, heroTop - 18, 98, 32, '#1b2c35b8', '#b5c9d128', 16);
                     this.labels.wallet = Primitives_js_1.text(wallet, '✧  0', 6, 6, 86, 24, { size: 11, color: '#cedcce', align: 'center', wrap: false });
                     const campaignH = compact ? 110 : 124, campaign = Primitives_js_1.card(this.home, 'CampaignCard', pad, dockY, inner, campaignH, '#21343fe8', '#bfd4d43b', 18);
-                    const start = Primitives_js_1.button(campaign, 'start', '开始出击     ↗', 15, 15, inner - 30, compact ? 48 : 56, () => this.startCampaign(), { primary: true, size: 16 });
+                    const start = Primitives_js_1.button(campaign, 'start', '开始出击', 15, 15, inner - 30, compact ? 48 : 56, () => this.startCampaign(), { primary: true, size: 16, arrow: true });
                     this.labels.start = start.label;
-                    Primitives_js_1.button(campaign, 'map', '星域地图               选择已解锁关卡 ↗', 15, compact ? 69 : 77, inner - 30, 32, () => { this.mapChapter = Math.floor((this.save.unlocked - 1) / 10); this.showMap(); }, { fill: '#21343f', size: 11, align: 'left' });
+                    const map = Primitives_js_1.button(campaign, 'map', '星域地图', 15, compact ? 69 : 77, inner - 30, 32, () => { this.mapChapter = Math.floor((this.save.unlocked - 1) / 10); this.showMap(); }, { fill: '#21343f', size: 12, align: 'left', arrow: true });
+                    Primitives_js_1.text(map.node, '选择已解锁关卡', inner - 30 - 158, 9, 124, 17, { size: 9, color: '#a6bdc7', align: 'right', wrap: false });
                     const groupY = dockY + campaignH + 13, groupH = compact ? 103 : 117, group = Primitives_js_1.card(this.home, 'GrowthCard', pad, groupY, inner, groupH, '#1d2d3aeb', '#bacfd332', 18);
                     Primitives_js_1.text(group, '武 器 养 成', 15, 12, inner - 30, 18, { size: 9, color: '#93aab5', wrap: false });
                     const tileW = (inner - 40) / 2;
-                    const a = Primitives_js_1.button(group, 'support', '', 15, 35, tileW, compact ? 56 : 68, () => this.showSupport(), { fill: '#2b3e49' });
-                    const b = Primitives_js_1.button(group, 'growth', '', 25 + tileW, 35, tileW, compact ? 56 : 68, () => this.showGrowth(), { fill: '#2b3e49' });
+                    const a = Primitives_js_1.button(group, 'support', '', 15, 35, tileW, compact ? 56 : 68, () => this.showSupport(), { fill: '#2b3e49', arrow: true });
+                    const b = Primitives_js_1.button(group, 'growth', '', 25 + tileW, 35, tileW, compact ? 56 : 68, () => this.showGrowth(), { fill: '#2b3e49', arrow: true });
                     for (const [n, symbol, title, detail] of [[a.node, '✦', '副武器', '装配与飞行动作'], [b.node, '▥', '火力工坊', '永久升级']]) {
                         Primitives_js_1.text(n, symbol, 10, 14, 28, 34, { size: 24, color: '#b8dfd1' });
-                        Primitives_js_1.text(n, title, 45, 13, tileW - 52, 22, { size: 12, bold: true, wrap: false });
-                        Primitives_js_1.text(n, detail, 45, 36, tileW - 52, 18, { size: 8, color: '#a5bac4', wrap: false });
+                        Primitives_js_1.text(n, title, 45, 13, tileW - 76, 22, { size: 12, bold: true, wrap: false });
+                        Primitives_js_1.text(n, detail, 45, 36, tileW - 76, 18, { size: 8, color: '#a5bac4', wrap: false });
                     }
                     const utilityY = groupY + groupH + 13, utilityW = (inner - 10) / 2;
-                    Primitives_js_1.button(this.home, 'hangar', '◈   机库外观     ↗', pad, utilityY, utilityW, 45, () => this.showHangar(), { size: 11, fill: '#142531cf', radius: 12 });
-                    Primitives_js_1.button(this.home, 'music', '♫   星际唱片机   ↗', pad + utilityW + 10, utilityY, utilityW, 45, () => this.showMusic(), { size: 11, fill: '#142531cf', radius: 12 });
-                    Primitives_js_1.text(this.home, 'v1.8.2 · C2', 26, h - 16 - this.safeBottom, 140, 13, { size: 7, color: '#68808b', wrap: false });
+                    Primitives_js_1.button(this.home, 'hangar', '◈   机库外观', pad, utilityY, utilityW, 45, () => this.showHangar(), { size: 11, fill: '#142531cf', radius: 12, align: 'left', arrow: true });
+                    Primitives_js_1.button(this.home, 'music', '♫   星际唱片机', pad + utilityW + 10, utilityY, utilityW, 45, () => this.showMusic(), { size: 11, fill: '#142531cf', radius: 12, align: 'left', arrow: true });
+                    Primitives_js_1.text(this.home, 'v1.8.2 · C3', 26, h - 16 - this.safeBottom, 140, 13, { size: 7, color: '#68808b', wrap: false });
                     this.labels.loading = Primitives_js_1.text(this.home, this.assetsLoaded ? '' : '正在载入星域…', 26, heroTop + 274, w - 52, 25, { size: 10, color: '#95b6bb' });
                 }
                 buildTop() {
@@ -251,7 +252,7 @@ System.register(["cc", "./core/engine.js?v=e270a89589f99c03", "./core/music.js?v
                 refreshHome() {
                     this.labels.wallet.string = '✧  ' + this.save.economy.coins.toLocaleString();
                     const label = this.save.unlocked === 1 && !this.save.stars[1] ? '开始出击' : `继续出击 · 第${String(this.save.unlocked).padStart(2, '0')}关`;
-                    this.labels.start.string = label + '     ↗';
+                    this.labels.start.string = label;
                     const skin = economy_js_1.SKINS.find((s) => s.id === this.save.economy.equipped) || economy_js_1.SKINS[0];
                     this.renderer.skin = skin.id === 'classic' ? null : skin;
                     this.renderer.lite = this.save.settings.lite;
@@ -638,7 +639,7 @@ System.register(["cc", "./core/engine.js?v=e270a89589f99c03", "./core/music.js?v
                         this.beatGraphics.fillColor = Primitives_js_1.color(lit && i === index ? '#e2ffd3' : '#3b6266');
                         this.beatGraphics.fill();
                     }
-                    this.cannon.update(dt, this.visualTime, phase, beat, b.aim, over, this.renderer.skin?.color || '#a8fbd6');
+                    this.cannon.update(dt, this.visualTime, phase, beat, b.aim, over, this.renderer.skin?.color || '#a8fbd6', this.lesson?.stage === 1);
                     this.tutorialBox.active = !!this.lesson;
                     if (this.lesson) {
                         this.tutorialTitle.string = this.lesson.title;
