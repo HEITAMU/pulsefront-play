@@ -5,9 +5,13 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: cocos-runtime-check
+  cancel-in-progress: true
 jobs:
   browser:
     runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright:v1.62.1-noble
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -15,8 +19,6 @@ jobs:
           persist-credentials: false
       - name: Install browser test runtime
         run: npm install --prefix /tmp/pulsefront-browser-check playwright@1.62.1
-      - name: Install WebKit with system dependencies
-        run: /tmp/pulsefront-browser-check/node_modules/.bin/playwright install --with-deps webkit
       - name: Check real Cocos startup in WebKit
         env:
           NODE_PATH: /tmp/pulsefront-browser-check/node_modules
