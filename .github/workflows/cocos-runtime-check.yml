@@ -1,0 +1,30 @@
+name: Cocos browser runtime check
+on:
+  push:
+    branches: [cocos-runtime-check]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install browser test runtime
+        run: npm install --prefix /tmp/pulsefront-browser-check playwright@1.62.1
+      - name: Install WebKit with system dependencies
+        run: /tmp/pulsefront-browser-check/node_modules/.bin/playwright install --with-deps webkit
+      - name: Check real Cocos startup in WebKit
+        env:
+          NODE_PATH: /tmp/pulsefront-browser-check/node_modules
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: xvfb-run -a node tests/cocos-runtime-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cocos-browser-runtime
+          path: browser-check-results
+          retention-days: 7
