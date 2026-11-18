@@ -34,6 +34,46 @@ const server = http.createServer((req, res) => {
     await page.waitForTimeout(1000);
     evidence.afterFrames = await page.evaluate(() => ({ errors: window.__smokeErrors, diagnostics: window.pulsefront?.snapshot?.(), frames: window.cc?.director?.getTotalFrames?.() }));
     if (evidence.afterFrames.errors?.length || !evidence.afterFrames.diagnostics) throw new Error('First frames failed');
+    const snapshot = () => page.evaluate(() => window.pulsefront.snapshot());
+    evidence.flow = [];
+    // Coordinates match the observed 420 x 840 startup screenshot and native UI layout.
+    await page.mouse.click(379, 39);
+    await page.waitForFunction(() => !!window.pulsefront.snapshot().panel);
+    evidence.flow.push({ step: 'settings-click', state: await snapshot() });
+    await page.screenshot({ path: path.join(output, 'settings.png') });
+    await page.mouse.click(365, 101);
+    await page.waitForFunction(() => !window.pulsefront.snapshot().panel);
+    await page.mouse.click(210, 547);
+    await page.waitForFunction(() => window.pulsefront.snapshot().mode === 'playing', undefined, { timeout: 10000 });
+    evidence.flow.push({ step: 'start-tutorial-click', state: await snapshot() });
+    await page.screenshot({ path: path.join(output, 'tutorial.png') });
+    for (let i = 0; i < 3; i++) {
+      await page.mouse.click(210, 698, { delay: 80 });
+      await page.waitForTimeout(120);
+    }
+    await page.waitForFunction(() => window.pulsefront.snapshot().lesson >= 1);
+    await page.mouse.move(210, 698); await page.mouse.down();
+    await page.waitForTimeout(450);
+    await page.mouse.move(140, 698, { steps: 8 });
+    await page.mouse.move(280, 698, { steps: 8 });
+    await page.waitForTimeout(100);
+    evidence.flow.push({ step: 'cannon-held-and-sway', state: await snapshot() });
+    await page.screenshot({ path: path.join(output, 'cannon-held.png') });
+    await page.mouse.up();
+    await page.waitForFunction(() => !window.pulsefront.snapshot().held && window.pulsefront.snapshot().lesson >= 2);
+    await page.mouse.click(379, 39);
+    await page.waitForFunction(() => window.pulsefront.snapshot().mode === 'paused');
+    const paused = await snapshot();
+    await page.waitForTimeout(250);
+    const stillPaused = await snapshot();
+    if (Math.abs(stillPaused.audio.position - paused.audio.position) > 0.05) throw new Error('Paused audio clock advanced');
+    evidence.flow.push({ step: 'pause-click', state: stillPaused });
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => window.pulsefront.snapshot().mode === 'playing');
+    await page.waitForTimeout(250);
+    evidence.flow.push({ step: 'resume-key', state: await snapshot() });
+    const endErrors = await page.evaluate(() => window.__smokeErrors);
+    if (endErrors.length || evidence.errors.length) throw new Error('Browser flow produced runtime errors: ' + JSON.stringify(endErrors));
     console.log('Cocos real WebKit startup passed', JSON.stringify(evidence.state));
   } catch (error) {
     evidence.failure = error.stack || String(error);
