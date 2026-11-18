@@ -25,7 +25,7 @@ class WechatGame {
  }
  persist(){try{this.wx.setStorageSync('pulsefront-save-v1',this.save);}catch{this.notice='进度保存失败，请检查设备空间';}}
  resize(){const info=this.wx.getWindowInfo?.()||this.wx.getSystemInfoSync();this.w=info.windowWidth;this.h=info.windowHeight;const capsule=this.wx.getMenuButtonBoundingClientRect?.();this.top=Math.max(info.safeArea?.top||20,capsule?.bottom||40)+12;this.bottom=Math.max(12,this.h-(info.safeArea?.bottom||this.h));this.renderer.resize(this.w,this.h,this.save.settings.lite);this.battle?.resize(this.w,this.h);}
- async start(level,trained=false){this.lesson=level===1&&!trained?new FirstLesson():null;if(this.ads.pending)return;await this.audio.unlock();this.save.seen=true;this.persist();this.notice='';this.release();this.runId='wx-'+Date.now()+'-'+Math.random().toString(36).slice(2);this.receipt=null;this.salvaged=0;this.battle=new Battle(level,{width:this.w,height:this.h,tempo:getTrack(level).bpm,seed:Date.now()%999,supports:this.save.support.equipped,motions:this.save.support.motions,growth:this.save.growth,finisher:'wave',emit:(t,d)=>this.event(t,d)});this.mode='playing';this.page='battle';this.renderer.fx=[];this.renderer.texts=[];this.renderer.setChapter(this.battle.c.chapter);this.audio.start(level);this.last=0;}
+ async start(level,trained=false){this.lesson=level===1&&!trained?new FirstLesson():null;if(this.ads.pending)return;await this.audio.unlock();this.save.seen=true;this.persist();this.notice='';this.release();this.runId='wx-'+Date.now()+'-'+Math.random().toString(36).slice(2);this.receipt=null;this.salvaged=0;this.battle=new Battle(level,{width:this.w,height:this.h,tempo:getTrack(level).bpm,seed:Date.now()%999,supports:this.save.support.equipped,motions:this.save.support.motions,growth:this.save.growth,finisher:'wave',emit:(t,d)=>this.event(t,d)});this.mode='playing';this.page='battle';this.renderer.fx=[];this.renderer.texts=[];this.renderer.setChapter(this.battle.c.chapter);this.audio.start(level,0,!!this.lesson);this.last=0;}
  event(type,data){
   this.renderer.event(type,data);
   if(['fire','hurt','bossDown','overdrive','pickup'].includes(type))this.audio.fx(type,data);
@@ -40,7 +40,7 @@ class WechatGame {
   }
  }
  pause(){if(this.mode!=='playing')return;this.mode='paused';this.page='pause';this.release();this.audio.stop();}
- async resume(){await this.audio.unlock();this.mode='playing';this.page='battle';this.audio.start(this.battle.c.level,this.battle.t);this.last=0;}
+ async resume(){await this.audio.unlock();this.mode='playing';this.page='battle';this.audio.start(this.battle.c.level,this.battle.t,!!this.lesson);this.last=0;}
  home(){if(this.ads.pending)return;this.release();this.audio.stop();this.battle=null;this.mode='home';this.page='home';this.renderer.setChapter(0);this.notice='';this.persist();}
  release(){this.pointer=null;this.sway.reset();if(this.battle){this.battle.held=false;this.battle.aim=null;}}
  aim(t){const b=this.battle,x=(t.clientX-b.cx)/75,y=(t.clientY-b.cy)/75;const a=aimAngleFor({x,y:Math.min(-.08,y)});b.aim=Math.hypot(x,y)<.25?null:{x:Math.cos(a),y:Math.sin(a)};return x;}
@@ -49,7 +49,7 @@ class WechatGame {
  touchMove(e){if(this.pointer===null||this.mode!=='playing')return;const t=e.touches.find(t=>t.identifier===this.pointer);if(!t)return;this.lesson?.move((t.clientX-this.battle.cx)/75);const time=this.audio.position(this.battle.t),peak=this.sway.move(this.aim(t),time);if(peak&&time-peak.time<=.22)this.battle.swayBeat(peak.time);}
  touchEnd(e){if((e.changedTouches||[]).some(t=>t.identifier===this.pointer))this.release();}
  async doubleReward(){if(!this.receipt||this.receipt.bonus||!this.ads.available)return;const run=this.runId;this.audio.stop();this.notice='正在加载广告…';const result=await this.ads.reward();if(run!==this.runId)return;if(result.earned){awardDouble(this.save.economy,run);this.persist();this.notice='双倍星屑已到账';}else this.notice=result.status==='cancelled'?'未完整观看，基础星屑已保留':'暂无可用广告，基础星屑已保留';}
- frame(now){const dt=Math.max(0,Math.min(.05,(now-(this.last||now))/1000));this.last=now;if(this.hidden)return;this.clock+=dt;if(this.mode==='playing'){this.battle.rhythmTime=this.audio.position(this.battle.t);if(this.lesson?.done){this.lesson=null;this.start(1,true);}else{this.battle.step(dt*(this.lesson?this.lesson.tick(dt,this.pointer!==null):1),this.audio.phase(this.battle.phase()));if(this.lesson){this.battle.hp=100;this.battle.t=Math.min(this.battle.t,10);if(this.audio.position(0)>24)this.audio.start(1);}}}this.renderer.update(dt);this.renderer.skin=SKINS.find(s=>s.id===this.save.economy.equipped&&s.id!=='classic')||null;this.renderer.render(this.battle,this.clock,this.audio.phase(this.battle?.phase()||0),!this.battle);this.draw();}
+ frame(now){const dt=Math.max(0,Math.min(.05,(now-(this.last||now))/1000));this.last=now;if(this.hidden)return;this.clock+=dt;if(this.mode==='playing'){this.battle.rhythmTime=this.audio.position(this.battle.t);if(this.lesson?.done){this.lesson=null;this.start(1,true);}else{this.battle.step(dt*(this.lesson?this.lesson.tick(dt,this.pointer!==null):1),this.audio.phase(this.battle.phase()));if(this.lesson){this.battle.hp=100;this.battle.t=Math.min(this.battle.t,10);}}}this.renderer.update(dt);this.renderer.skin=SKINS.find(s=>s.id===this.save.economy.equipped&&s.id!=='classic')||null;this.renderer.render(this.battle,this.clock,this.audio.phase(this.battle?.phase()||0),!this.battle);this.draw();}
  text(s,x,y,size=16,color='#e6eadb',align='left'){const c=this.renderer.ctx;c.fillStyle=color;c.font=`${size>=25?'600 ':''}${size}px sans-serif`;c.textAlign=align;c.textBaseline='middle';c.fillText(s,x,y);}
  box(x,y,w,h,fill='#152630ee',stroke='#8fa7a250'){const c=this.renderer.ctx;c.beginPath();c.roundRect(x,y,w,h,18);c.fillStyle=fill;c.fill();c.strokeStyle=stroke;c.lineWidth=1;c.stroke();}
  button(label,y,fn,{x=22,w=this.w-44,h=48,primary=false,disabled=false}={}){this.box(x,y,w,h,disabled?'#111b24ee':primary?'#ced8c2':'#172833ee',primary?'#eff4d7':'#94a5a25a');this.text(label,x+w/2,y+h/2,15,disabled?'#596570':primary?'#15222a':'#dce6df','center');this.buttons.push({x,y:this.hitScale?this.hitOrigin+(y-this.hitOrigin)*this.hitScale:y,w,h:h*(this.hitScale||1),fn,disabled});}
@@ -499,7 +499,7 @@ const {cueAt}=require("rhythm.mjs");
 const {arrangementFor,sectionAt}=require("arrangement.mjs");
 const {getTrack,frequency,stepTime}=require("music.mjs");
 class Soundtrack {
- constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.effectNodes=new Set();this.generation=0;}
+ constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.effectNodes=new Set();this.generation=0;this.tutorialLoop=false;}
  async unlock(){
   try{
    if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;this.ctx=new AC({latencyHint:'interactive'});this.setup(this.ctx);}
@@ -544,10 +544,10 @@ class Soundtrack {
   else if(i==='vibes'){this.tone(at,f,d*2.1,amp,'sine',undefined,undefined,bus,{pan:.2});this.tone(at,f*4,d*.28,amp*.16,'sine');}
   else if(i==='synth'){this.tone(at,f,d*1.25,bass?.27*v:amp*.8,'sawtooth',undefined,bass?600:2400,bus,{wah:true,q:2});this.tone(at,f,d,bass?.21*v:amp*.3,'sine');}
  }
- start(level=1,time=0){this.stop();this.track=getTrack(level);if(!this.ctx)return;this.music=this.ctx.createGain();this.music.connect(this.master);this.music.gain.setValueAtTime(0,this.ctx.currentTime);this.music.gain.linearRampToValueAtTime(this.musicVolume,this.ctx.currentTime+.18);this.running=true;this.origin=this.ctx.currentTime-time+.045;this.applyMusicEnvelope(true);this.step=Math.max(0,Math.floor(time/(this.track.beat/4)));this.schedule();this.timer=setInterval(()=>this.schedule(),25);}
- musicLevel(time){const a=arrangementFor(this.track.level,this.track.bpm);return this.musicVolume*Math.max(0,Math.min(1,(a.duration-time)/5));}
+ start(level=1,time=0,tutorial=false){this.stop();this.tutorialLoop=tutorial;this.track=getTrack(level);if(!this.ctx)return;this.music=this.ctx.createGain();this.music.connect(this.master);this.music.gain.setValueAtTime(0,this.ctx.currentTime);this.music.gain.linearRampToValueAtTime(this.musicVolume,this.ctx.currentTime+.18);this.running=true;this.origin=this.ctx.currentTime-time+.045;this.applyMusicEnvelope(true);this.step=Math.max(0,Math.floor(time/(this.track.beat/4)));this.schedule();this.timer=setInterval(()=>this.schedule(),25);}
+ musicLevel(time){if(this.tutorialLoop)return this.musicVolume;const a=arrangementFor(this.track.level,this.track.bpm);return this.musicVolume*Math.max(0,Math.min(1,(a.duration-time)/5));}
  applyMusicEnvelope(fadeIn=false){
-  if(!this.ctx||!this.music)return;const now=this.ctx.currentTime,a=arrangementFor(this.track.level,this.track.bpm),time=Math.max(0,now-this.origin),end=this.origin+a.duration,start=end-5,g=this.music.gain;
+  if(!this.ctx||!this.music)return;if(this.tutorialLoop){const now=this.ctx.currentTime,g=this.music.gain;g.cancelScheduledValues(now);g.setValueAtTime(fadeIn?0:this.musicVolume,now);if(fadeIn)g.linearRampToValueAtTime(this.musicVolume,now+.18);return;}const now=this.ctx.currentTime,a=arrangementFor(this.track.level,this.track.bpm),time=Math.max(0,now-this.origin),end=this.origin+a.duration,start=end-5,g=this.music.gain;
   g.cancelScheduledValues(now);g.setValueAtTime(fadeIn?0:this.musicLevel(time),now);
   if(fadeIn)g.linearRampToValueAtTime(this.musicLevel(time+.18),now+.18);
   if(start>now+.18)g.setValueAtTime(this.musicVolume,start);
@@ -566,7 +566,7 @@ class Soundtrack {
   if(this.ctx.currentTime-this.origin-stepTime(t,this.step)>1)this.step=Math.floor((this.ctx.currentTime-this.origin)/(t.beat/4));
   while(this.origin+stepTime(t,this.step)<this.ctx.currentTime+.14){const at=this.origin+stepTime(t,this.step);if((!this.endingAt||at<this.endingAt)&&at>=this.ctx.currentTime-.012){
    const when=Math.max(at,this.ctx.currentTime),elapsed=stepTime(t,this.step),a=arrangementFor(t.level,t.bpm),section=sectionAt(elapsed,a),sub=this.step%16;
-   if(elapsed>=a.duration){this.step++;continue;}
+   if(elapsed>=a.duration){if(this.tutorialLoop){this.origin+=a.duration;this.step=0;continue;}this.step++;continue;}
    const beforeDrop=elapsed>=a.climaxStart-t.beat&&elapsed<a.climaxStart;
    for(const e of t.byStep[this.step%n]){
     if(beforeDrop&&e.instrument!=='snare'&&e.instrument!=='hat')continue;
