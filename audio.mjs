@@ -2,7 +2,7 @@ import {cueAt} from './rhythm.mjs?v=1.8.2';
 import {arrangementFor,sectionAt} from './arrangement.mjs?v=1.8.2';
 import {getTrack,frequency,stepTime} from './music.mjs?v=1.8.2';
 export class Soundtrack {
- constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.generation=0;}
+ constructor(){this.ctx=null;this.muted=false;this.running=false;this.origin=0;this.step=0;this.timer=null;this.track=getTrack(1);this.volume=.52;this.musicVolume=.74;this.fxVolume=.55;this.nodes=new Set();this.effectNodes=new Set();this.generation=0;}
  async unlock(){
   try{
    if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;this.ctx=new AC({latencyHint:'interactive'});this.setup(this.ctx);}
@@ -17,16 +17,16 @@ export class Soundtrack {
  setMute(value){this.muted=value;if(this.master)this.master.gain.setTargetAtTime(value?0:this.volume,this.ctx.currentTime,.025);}
  setVolumes(music,fx){this.musicVolume=Math.max(0,Math.min(1,music));this.fxVolume=Math.max(0,Math.min(1,fx));if(this.music){if(this.running)this.applyMusicEnvelope();else this.music.gain.setTargetAtTime(this.musicVolume,this.ctx.currentTime,.04);this.effects.gain.setTargetAtTime(this.fxVolume,this.ctx.currentTime,.04);}}
  tone(at,freq,duration,gain,type='sine',endFreq,filterFreq,bus=this.music,options={}){
-  if(!this.ctx||(this.nodes.size>180&&!this.ctx.startRendering))return;const o=this.ctx.createOscillator(),g=this.ctx.createGain(),cleanup=[];o.type=type;o.frequency.setValueAtTime(Math.max(16,freq),at);
+  if(!this.ctx||(bus===this.effects&&this.effectNodes.size>=36)||this.nodes.size>=220)return;const o=this.ctx.createOscillator(),g=this.ctx.createGain(),cleanup=[];o.type=type;o.frequency.setValueAtTime(Math.max(16,freq),at);
   if(endFreq)o.frequency.exponentialRampToValueAtTime(Math.max(16,endFreq),at+Math.min(duration,.16));
   if(options.bend){o.frequency.setValueAtTime(freq*.94,at);o.frequency.exponentialRampToValueAtTime(freq,at+.065);}
   if(options.detune)o.detune.value=options.detune;
   const attack=Math.min(duration*.3,options.attack||.004);g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(Math.max(.0002,gain),at+attack);g.gain.exponentialRampToValueAtTime(.0001,at+duration);if(options.hardStop)g.gain.setValueAtTime(0,at+duration+.002);o.connect(g);
   let tail=g;if(filterFreq){const f=this.ctx.createBiquadFilter();f.type=options.filterType||'lowpass';f.Q.value=options.q||.65;f.frequency.setValueAtTime(filterFreq,at);if(options.wah)f.frequency.exponentialRampToValueAtTime(Math.max(160,filterFreq*.3),at+duration);g.connect(f);tail=f;cleanup.push(f);}
   if(options.pan&&this.ctx.createStereoPanner){const pan=this.ctx.createStereoPanner();pan.pan.value=options.pan;tail.connect(pan);tail=pan;cleanup.push(pan);}
-  tail.connect(bus||this.music);o.start(at);o.stop(at+duration+(options.hardStop?.003:.025));this.nodes.add(o);o.onended=()=>{this.nodes.delete(o);o.disconnect();g.disconnect();for(const n of cleanup)n.disconnect();};
+  tail.connect(bus||this.music);o.start(at);o.stop(at+duration+(options.hardStop?.003:.025));this.nodes.add(o);if(bus===this.effects)this.effectNodes.add(o);o.onended=()=>{this.nodes.delete(o);this.effectNodes.delete(o);o.disconnect();g.disconnect();for(const n of cleanup)n.disconnect();};
  }
- hiss(at,duration,gain,hz,bus=this.music){if(!this.ctx)return;const source=this.ctx.createBufferSource(),filter=this.ctx.createBiquadFilter(),g=this.ctx.createGain();source.buffer=this.noise;filter.type='highpass';filter.frequency.value=hz;g.gain.setValueAtTime(Math.max(.0001,gain),at);g.gain.exponentialRampToValueAtTime(.0001,at+duration);source.connect(filter);filter.connect(g);g.connect(bus||this.music);source.start(at);source.stop(at+duration);this.nodes.add(source);source.onended=()=>{this.nodes.delete(source);source.disconnect();filter.disconnect();g.disconnect();};}
+ hiss(at,duration,gain,hz,bus=this.music){if(!this.ctx||(bus===this.effects&&this.effectNodes.size>=36)||this.nodes.size>=220)return;const source=this.ctx.createBufferSource(),filter=this.ctx.createBiquadFilter(),g=this.ctx.createGain();source.buffer=this.noise;filter.type='highpass';filter.frequency.value=hz;g.gain.setValueAtTime(Math.max(.0001,gain),at);g.gain.exponentialRampToValueAtTime(.0001,at+duration);source.connect(filter);filter.connect(g);g.connect(bus||this.music);source.start(at);source.stop(at+duration);this.nodes.add(source);if(bus===this.effects)this.effectNodes.add(source);source.onended=()=>{this.nodes.delete(source);this.effectNodes.delete(source);source.disconnect();filter.disconnect();g.disconnect();};}
  note(event,at){
   const {instrument:i,duration:d,velocity:v,midi,bend,role}=event,f=frequency(midi);const bus=this.music;
   if(i==='kick'){this.tone(at,145,d,.67*v,'sine',43,undefined,bus);this.hiss(at,.018,.06*v,1600);return;}
@@ -61,7 +61,7 @@ export class Soundtrack {
   this.music.gain.cancelScheduledValues(now);this.music.gain.setValueAtTime(this.musicLevel(Math.max(0,now-this.origin)),now);this.music.gain.linearRampToValueAtTime(0,now+1.2);
   const gen=this.generation;clearTimeout(this.endTimer);this.endTimer=setTimeout(()=>{if(this.generation===gen)this.stop();},1300);
  }
- stop(){clearTimeout(this.endTimer);this.endingAt=null;this.running=false;this.generation++;if(this.timer)clearInterval(this.timer);this.timer=null;const now=this.ctx?.currentTime||0,old=this.music;if(old){old.gain.cancelScheduledValues(now);old.gain.setValueAtTime(old.gain.value,now);old.gain.linearRampToValueAtTime(0,now+.18);setTimeout(()=>old.disconnect(),350);}for(const n of this.nodes){try{if(n.fadeGain){n.fadeGain.gain.cancelScheduledValues(now);n.fadeGain.gain.setValueAtTime(n.fadeGain.gain.value,now);n.fadeGain.gain.linearRampToValueAtTime(0,now+.18);}n.stop(now+.2);}catch{}}this.nodes.clear();}
+ stop(){clearTimeout(this.endTimer);this.endingAt=null;this.running=false;this.generation++;if(this.timer)clearInterval(this.timer);this.timer=null;const now=this.ctx?.currentTime||0,old=this.music;if(old){old.gain.cancelScheduledValues(now);old.gain.setValueAtTime(old.gain.value,now);old.gain.linearRampToValueAtTime(0,now+.18);setTimeout(()=>old.disconnect(),350);}for(const n of this.nodes){try{if(n.fadeGain){n.fadeGain.gain.cancelScheduledValues(now);n.fadeGain.gain.setValueAtTime(n.fadeGain.gain.value,now);n.fadeGain.gain.linearRampToValueAtTime(0,now+.18);}n.stop(now+.2);}catch{}}this.nodes.clear();this.effectNodes.clear();}
  position(fallback=0){return this.ctx&&this.running?Math.max(0,this.ctx.currentTime-this.origin):fallback;}
  phase(fallback=0){const beat=this.track.beat;return this.ctx&&this.running?((this.ctx.currentTime-this.origin)%beat+beat)%beat:fallback;}
  schedule(){
@@ -95,7 +95,6 @@ export class Soundtrack {
   if(type==='fire')this.tone(now,data.weapon==='laser'?360:150,.055,.023,'triangle',data.weapon==='laser'?130:65,850,b);
   if(type==='hurt'){this.air(now,.13,.15,500,b);this.tone(now,85,.18,.13,'sawtooth',35,350,b);}
   if(type==='bossDown'||type==='overdrive'){this.tone(now,90,.32,.19,'sine',34,undefined,b);this.air(now,.22,.13,1100,b);this.tone(now,240,.13,.07,'triangle',100,650,b);}
-  if(type==='ui'){this.tone(now,230,.065,.075,'triangle',140,700,b);this.air(now,.03,.02,900,b);}
  }
- air(at,duration,gain,hz,bus){if(!this.ctx||this.nodes.size>180)return;const source=this.ctx.createBufferSource(),filter=this.ctx.createBiquadFilter(),g=this.ctx.createGain();source.buffer=this.noise;filter.type='bandpass';filter.frequency.value=hz;filter.Q.value=.7;g.gain.setValueAtTime(.0001,at);g.gain.linearRampToValueAtTime(gain,at+.004);g.gain.exponentialRampToValueAtTime(.0001,at+duration);source.connect(filter);filter.connect(g);g.connect(bus);source.start(at);source.stop(at+duration);this.nodes.add(source);source.onended=()=>{this.nodes.delete(source);source.disconnect();filter.disconnect();g.disconnect();};}
+ air(at,duration,gain,hz,bus){if(!this.ctx||(bus===this.effects&&this.effectNodes.size>=36)||this.nodes.size>=220)return;const source=this.ctx.createBufferSource(),filter=this.ctx.createBiquadFilter(),g=this.ctx.createGain();source.buffer=this.noise;filter.type='bandpass';filter.frequency.value=hz;filter.Q.value=.7;g.gain.setValueAtTime(.0001,at);g.gain.linearRampToValueAtTime(gain,at+.004);g.gain.exponentialRampToValueAtTime(.0001,at+duration);source.connect(filter);filter.connect(g);g.connect(bus);source.start(at);source.stop(at+duration);this.nodes.add(source);source.onended=()=>{this.nodes.delete(source);source.disconnect();filter.disconnect();g.disconnect();};}
 }
