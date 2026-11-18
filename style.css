@@ -62,3 +62,22 @@
 @keyframes fire-press-ring{from{transform:scale(.94);opacity:1}to{transform:scale(1.1);opacity:.4}}
 button:not(#fire):not(:disabled):active{filter:brightness(1.22);box-shadow:0 0 0 2px #b9ffe488,0 0 16px #83ffe477,inset 0 0 12px #b8ffe022;}
 .reduce-motion #fire.pressed::after{animation:none}
+
+/* High-impact main cannon feedback: no audio, no image assets. */
+#fire{overflow:visible;will-change:transform}
+#fire.pressed{
+ transform:translate(-50%,-50%) scale(.91) rotate(-1deg)!important;
+ background:radial-gradient(circle at 42% 32%,#8cfff566,transparent 42%),radial-gradient(circle,#377f82,#0c2938 73%)!important;
+ border:2px solid #d6fff4!important;
+ box-shadow:inset 0 0 38px #8effd477,0 0 12px #e3fff8,0 0 38px #55ffcfaa,0 0 70px #43ffe15c!important;
+ animation:cannon-recoil .16s ease-out both;
+}
+#fire.pressed::before{inset:-13px;border:3px solid #d5ffeac7;box-shadow:0 0 20px #a1ffe7,0 0 46px #5affcf88;animation:cannon-halo .42s ease-out infinite}
+#fire.pressed::after{inset:-22px;border:3px dashed #a8ffe8!important;filter:drop-shadow(0 0 9px #6bffdc);animation:cannon-spin 1.2s linear infinite!important}
+#fire.pressed .fire-main{color:#fff!important;font-size:30px;transform:scale(1.1);text-shadow:0 0 8px #fff,0 0 24px #71ffde,0 0 40px #4affd0}
+#fire.pressed .fire-top,#fire.pressed .fire-bottom{color:#e0fff4}
+#fire:not(.pressed){transition:transform .16s cubic-bezier(.15,1.8,.35,1),box-shadow .16s,background .12s}
+@keyframes cannon-recoil{0%{transform:translate(-50%,-50%) scale(1.07) rotate(1deg)}45%{transform:translate(-50%,-50%) scale(.88) rotate(-1.5deg)}100%{transform:translate(-50%,-50%) scale(.93) rotate(0)}}
+@keyframes cannon-halo{0%{transform:scale(.88);opacity:.95}100%{transform:scale(1.22);opacity:.18}}
+@keyframes cannon-spin{to{transform:rotate(360deg)}}
+.reduce-motion #fire.pressed,.reduce-motion #fire.pressed::before,.reduce-motion #fire.pressed::after{animation:none!important}
