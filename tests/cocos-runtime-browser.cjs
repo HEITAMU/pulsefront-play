@@ -19,10 +19,10 @@ const server = http.createServer((req, res) => {
 });
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  let browser;
+  let browser, page;
   try {
     browser = await webkit.launch({ headless: false });
-    const page = await browser.newPage({ viewport: { width: 420, height: 840 }, deviceScaleFactor: 1 });
+    page = await browser.newPage({ viewport: { width: 420, height: 840 }, deviceScaleFactor: 1 });
     page.on('console', m => evidence.logs.push({ type: m.type(), text: m.text() }));
     page.on('pageerror', e => evidence.errors.push(e.stack || String(e)));
     page.on('requestfailed', req => evidence.requests.push({ url: req.url(), failure: req.failure() }));
@@ -43,7 +43,14 @@ const server = http.createServer((req, res) => {
     await page.screenshot({ path: path.join(output, 'settings.png') });
     await page.mouse.click(365, 101);
     await page.waitForFunction(() => !window.pulsefront.snapshot().panel);
+    await page.waitForTimeout(120);
     await page.mouse.click(210, 547);
+    await page.waitForFunction(() => window.pulsefront.snapshot().mode === 'playing' || window.pulsefront.snapshot().panel, undefined, { timeout: 10000 });
+    if ((await snapshot()).mode !== 'playing') {
+      evidence.flow.push({ step: 'first-flight-briefing', state: await snapshot() });
+      await page.screenshot({ path: path.join(output, 'briefing.png') });
+      await page.mouse.click(210, 597);
+    }
     await page.waitForFunction(() => window.pulsefront.snapshot().mode === 'playing', undefined, { timeout: 10000 });
     evidence.flow.push({ step: 'start-tutorial-click', state: await snapshot() });
     await page.screenshot({ path: path.join(output, 'tutorial.png') });
@@ -76,6 +83,10 @@ const server = http.createServer((req, res) => {
     if (endErrors.length || evidence.errors.length) throw new Error('Browser flow produced runtime errors: ' + JSON.stringify(endErrors));
     console.log('Cocos real WebKit startup passed', JSON.stringify(evidence.state));
   } catch (error) {
+    if (page) {
+      evidence.lastState = await page.evaluate(() => ({ stage: window.__smokeStage, errors: window.__smokeErrors, diagnostics: window.pulsefront?.snapshot?.() })).catch(() => null);
+      await page.screenshot({ path: path.join(output, 'failure.png'), timeout: 3000 }).catch(() => {});
+    }
     evidence.failure = error.stack || String(error);
     console.error(evidence.failure);
     process.exitCode = 1;
