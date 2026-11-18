@@ -2,7 +2,7 @@
 // Shader math and blend modes follow official builtin-sprite/builtin-graphics effects.
 // Creator normally generates these descriptors through its effect importer.
 export async function registerBuiltinEffects(cc) {
-  const chunks = await (await fetch('./uniform-chunks.json?v=5c8bccdeaafa8f53')).json();
+  const chunks = await (await fetch('./uniform-chunks.json?v=e270a89589f99c03')).json();
   const { gfx, EffectAsset, Material, builtinResMgr } = cc;
   const clean = (s) => s.replace(/\/\/[^\n]*/g, '').replace(/#pragma[^\n]*/g, '').replace(/layout\([^)]*\)\s*/g, '');
   const globalBlock = clean(chunks['cc-global']);

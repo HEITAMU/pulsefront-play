@@ -1,6 +1,6 @@
 /** Browser validation harness only. Production resources are imported by Creator. */
 export async function preloadArt(cc) {
-    const response = await fetch('./art-manifest.json?v=5c8bccdeaafa8f53');
+    const response = await fetch('./art-manifest.json?v=e270a89589f99c03');
     if (!response.ok) throw new Error('art-manifest HTTP ' + response.status);
     const manifest = await response.json();
     const uuids = [], paths = {};
