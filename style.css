@@ -51,3 +51,14 @@
 #battle-banner{bottom:292px;font-size:21px;font-weight:850;color:#fff0b9;text-shadow:0 0 18px #e8c57488,0 2px 8px #000}
 .beat-rail{top:51px}.beat-dots i{width:7px;height:7px}
 .charge{bottom:22px;left:24px;right:24px;font-size:12px;font-weight:750;letter-spacing:.5px;color:#e8d9b3;pointer-events:none;gap:10px}.charge>div{height:8px;border-radius:8px;background:#223340;box-shadow:inset 0 1px 3px #0008}.charge i{border-radius:8px;background:linear-gradient(90deg,#b69b60,#ffdf8b);box-shadow:0 0 10px #f3c97555}#charge-value{font-size:14px;color:#ffedb9}.overdrive .charge{color:#ffe6a0;text-shadow:0 0 12px #ffbb55}.overdrive .charge>div{box-shadow:0 0 18px #ffc05c70}.overdrive #controls .groove-status{border-color:#ffe7a7;background:linear-gradient(140deg,#75512eef,#33251af0);box-shadow:0 0 25px #ffca6355}
+
+/* Web-first tactile feedback: CSS-only, no additional audio voices. */
+#fire{isolation:isolate}
+#fire::before{transition:border-color .12s,box-shadow .12s;}
+#fire.pressed{border-color:#b8fff1!important;box-shadow:inset 0 0 36px #79ffdc35,0 0 26px #6cfce46b,0 0 0 5px #85ffdd18!important;}
+#fire.pressed::before{border-color:#caffed9c;box-shadow:0 0 16px #7affd077,inset 0 0 18px #78ffd42a;}
+#fire.pressed .fire-main{text-shadow:0 0 16px #b3ffe7,0 0 28px #75ffe2;color:#f3fff5;}
+#fire.pressed::after{border-color:#aaffdb99!important;box-shadow:0 0 18px #79ffe0aa;animation:fire-press-ring .25s ease-out both;}
+@keyframes fire-press-ring{from{transform:scale(.94);opacity:1}to{transform:scale(1.1);opacity:.4}}
+button:not(#fire):not(:disabled):active{filter:brightness(1.22);box-shadow:0 0 0 2px #b9ffe488,0 0 16px #83ffe477,inset 0 0 12px #b8ffe022;}
+.reduce-motion #fire.pressed::after{animation:none}
