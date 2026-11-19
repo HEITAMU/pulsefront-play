@@ -8,13 +8,14 @@ const { webkit } = require('playwright');
 
 const root = path.resolve(process.env.COCOS_PREVIEW_DIR || (fs.existsSync('cocos-preview') ? 'cocos-preview' : 'pulsefront-cocos-preview'));
 const output = path.resolve(process.env.COCOS_QA_OUTPUT || 'browser-performance-audio-results');
-const strictSync = process.env.COCOS_QA_ASSERT_SYNC !== '0';
+const baseline = process.env.COCOS_QA_ASSERT_SYNC === '0';
 const viewport = { width: 390, height: 844 }, dpr = 3;
 const evidence = {
   environment: 'Playwright 1.62.1 WebKit / Linux / Mesa software rendering',
   actualPhoneOrWechat: false,
-  viewport, deviceDpr: dpr, expectedCanvasDpr: 2, strictSync,
+  viewport, deviceDpr: dpr, expectedCanvasDpr: 2, baseline, allAcceptanceChecksApplied: true,
   input: 'Real canvas mouse events only. No stored progress changes or direct game actions.',
+  inputPattern: 'Non-beat-locked, varied-interval real presses; tutorial inputs sweep beat phase, combat holds between brief releases. Read-only samples run independently once per second.',
   instrumentation: 'Test-only wrappers invoke original app.update, Graphics.clear, Canvas2D.fillText and Soundtrack.note unchanged; a separate requestAnimationFrame observer records frame intervals.',
   limitations: [
     'Linux software-rendered frame timing is not phone frame-rate evidence.',
@@ -34,7 +35,8 @@ const server = http.createServer((req, res) => {
     res.setHeader('Content-Type', mime[path.extname(file)] || 'application/octet-stream'); res.end(bytes);
   });
 });
-let browser, page;
+let browser, page, pushedState = null;
+const waitInput = ms => new Promise(resolve => setTimeout(resolve, ms));
 const quantile = (values, q) => {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -75,7 +77,13 @@ async function installObservers() {
     const counters = { frames: 0, graphicsClears: 0, labelRasterCalls: 0, notes: 0,
       totalNotes: 0, lastNoteAt: null, lastNoteObservedContextTime: null,
       clearsByNode: {}, updateMs: [], rafMs: [], rawDt: [], maxEnemies: 0 };
-    const flags = { collecting: false, fillTextAvailable: false };
+    const flags = { collecting: false, fillTextAvailable: false, sampleTimer: null, lastTransition: null };
+    const samples = [];
+    const publish = s => {
+      // Only observation crosses this binding; it does not deliver input or
+      // change any product state. It lets Node stop pressing at a result screen.
+      if (typeof window.__qaStateUpdate === 'function') window.__qaStateUpdate(s).catch(() => {});
+    };
     const eligible = () => flags.collecting && app.mode === 'playing' && !app.lesson && !!app.battle;
     const previousUpdate = app.update;
     app.update = function (...args) {
@@ -85,6 +93,12 @@ async function installObservers() {
         if (collect) {
           counters.frames++; counters.updateMs.push(performance.now() - before);
           counters.rawDt.push(args[0]); counters.maxEnemies = Math.max(counters.maxEnemies, app.battle?.enemies.length || 0);
+        }
+        if (flags.collecting && window.__qaProbe) {
+          const transition = app.mode + '/' + app.battle?.state;
+          if (transition !== flags.lastTransition) {
+            flags.lastTransition = transition; publish(window.__qaProbe.read());
+          }
         }
       }
     };
@@ -123,9 +137,13 @@ async function installObservers() {
     };
     requestAnimationFrame(observeFrame);
     window.__qaProbe = {
-      counters, flags,
-      begin() { flags.collecting = true; },
-      end() { flags.collecting = false; },
+      counters, flags, samples,
+      begin() {
+        flags.collecting = true;
+        const sample = () => { const s = this.read(); samples.push(s); publish(s); };
+        sample(); flags.sampleTimer = setInterval(sample, 1000);
+      },
+      end() { flags.collecting = false; clearInterval(flags.sampleTimer); flags.sampleTimer = null; },
       read() {
         const s = window.pulsefront.snapshot(), b = app.battle, a = app.audio;
         const position = a.position(app.musicElapsed), duration = b?.c.duration ?? a.track?.duration ?? null;
@@ -166,18 +184,6 @@ async function capture(name) {
   evidence.captures.push({ name, dimensions, state: await state(), visual: await page.evaluate(() => window.__qaProbe.visual()) });
 }
 
-async function awaitNewBeat(previousBeat, timeout = 2500) {
-  await page.waitForFunction(previous => {
-    const s = window.__qaProbe.read();
-    if (s.mode !== 'playing' || s.state !== 'playing') return true;
-    const number = Math.round(s.audio.position / s.beat), offset = s.audio.position - number * s.beat;
-    // Aim slightly before the beat to leave room for the normal automation
-    // transport latency. The game itself decides whether the input is perfect.
-    return number > previous && offset >= -.085 && offset <= .025;
-  }, previousBeat, { polling: 'raf', timeout });
-  const s = await state(); return { s, number: Math.round(s.audio.position / s.beat) };
-}
-
 async function completeTutorial(fire) {
   let s = await state();
   while (s.lesson === 0) {
@@ -191,16 +197,23 @@ async function completeTutorial(fire) {
     await page.waitForFunction(() => window.__qaProbe.read().lesson >= 2, undefined, { timeout: 6000 });
   }
   await page.mouse.move(fire.x, fire.y);
-  let prior = -1;
-  for (let tries = 0; tries < 18; tries++) {
+  // The first CI attempt waited for an audio phase and then made multiple
+  // protocol calls before clicking. That latency locked presses to a wrong
+  // phase. Sweep different phases with ordinary inputs; let the game, rather
+  // than a test-side timing estimate, count the three successful tutorial hits.
+  const holds = [31, 47, 37, 59, 43, 29];
+  const gaps = [97, 151, 73, 193, 127, 211];
+  for (let batch = 0; batch < 7; batch++) {
     s = await state(); if (s.lesson === null) break;
     if (s.lesson === 3) {
       await page.waitForFunction(() => window.__qaProbe.read().lesson === null, undefined, { timeout: 6000 });
       break;
     }
-    const next = await awaitNewBeat(prior); prior = next.number;
-    await page.mouse.click(fire.x, fire.y, { delay: 25 });
-    await page.waitForTimeout(80);
+    for (let i = 0; i < holds.length; i++) {
+      await page.mouse.down(); await waitInput(holds[(i + batch) % holds.length]);
+      await page.mouse.up(); await waitInput(gaps[(i + batch * 2) % gaps.length]);
+    }
+    evidence.flow.push({ step: 'tutorial-phase-sweep', batch: batch + 1, inputPresses: (batch + 1) * holds.length, state: await state() });
   }
   await page.waitForFunction(() => {
     const s = window.__qaProbe.read(); return s.mode === 'playing' && s.lesson === null && s.level === 1;
@@ -211,7 +224,10 @@ async function completeTutorial(fire) {
 async function runStage(fire) {
   await page.evaluate(() => window.__qaProbe.begin());
   const wallStart = performance.now();
-  let priorBeat = -1, paused = false, mouseHeld = false;
+  let paused = false, mouseHeld = false, inputBatch = 0;
+  const holds = [181, 263, 337, 211, 293];
+  const releases = [17, 29, 41, 23, 31];
+  await page.mouse.move(fire.x, fire.y);
   while (performance.now() - wallStart < 165000) {
     let s = await state();
     if (s.mode === 'result' || s.state !== 'playing') { evidence.finalBattle = s; break; }
@@ -227,21 +243,26 @@ async function runStage(fire) {
       await page.waitForFunction(() => window.__qaProbe.read().mode === 'playing');
       const resumed = await state();
       evidence.pauseResume = { before, after, resumed, passed: true };
-      paused = true; priorBeat = Math.round(resumed.audio.position / resumed.beat) - 1;
+      paused = true;
       await page.mouse.move(fire.x, fire.y);
       continue;
     }
-    const next = await awaitNewBeat(priorBeat); priorBeat = next.number; s = next.s;
-    if (s.mode !== 'playing' || s.state !== 'playing') { evidence.finalBattle = s; break; }
-    // Hold between beats for ordinary auto-fire, then release/press on each beat.
-    // These are the same public input events available to a player.
-    if (mouseHeld) await page.mouse.up();
-    await page.mouse.move(fire.x, fire.y); await page.mouse.down(); mouseHeld = true;
-    s = await state();
-    evidence.samples.push(s);
+    // Most time is spent held for normal auto-fire. Vary the hold and brief
+    // release durations so transport latency cannot repeatedly miss the same
+    // beat phase. There is no phase read or remote state query before each press.
+    for (let i = 0; i < holds.length; i++) {
+      if (pushedState && (pushedState.mode !== 'playing' || pushedState.state !== 'playing')) break;
+      if (mouseHeld) { await page.mouse.up(); mouseHeld = false; }
+      await waitInput(releases[(i + inputBatch) % releases.length]);
+      if (pushedState && (pushedState.mode !== 'playing' || pushedState.state !== 'playing')) break;
+      await page.mouse.down(); mouseHeld = true;
+      await waitInput(holds[(i + inputBatch) % holds.length]);
+    }
+    inputBatch++;
   }
   if (mouseHeld) await page.mouse.up();
   await page.evaluate(() => window.__qaProbe.end());
+  evidence.samples = await page.evaluate(() => window.__qaProbe.samples);
   evidence.elapsedWallMs = performance.now() - wallStart;
   if (!evidence.finalBattle) evidence.finalBattle = await state();
   const counters = await page.evaluate(() => ({ ...window.__qaProbe.counters, flags: window.__qaProbe.flags }));
@@ -273,7 +294,9 @@ async function runStage(fire) {
     clocksStayedAligned: drift.length > 10 && evidence.clock.maxAbsDrift <= .15,
   };
   if (!evidence.checks.realAudioContextRunning || !evidence.checks.pauseResume) throw new Error('Audio or pause prerequisites failed');
-  if (strictSync && Object.values(evidence.checks).some(v => !v)) throw new Error('Stage/audio verification failed: ' + JSON.stringify(evidence.checks));
+  // Baseline failures remain failures in result.json and the process exit code.
+  // Only the workflow's continue-on-error permits the candidate to run next.
+  if (Object.values(evidence.checks).some(v => !v)) throw new Error('Stage/audio verification failed: ' + JSON.stringify(evidence.checks));
 }
 
 (async () => {
@@ -281,6 +304,7 @@ async function runStage(fire) {
   try {
     browser = await webkit.launch({ headless: false });
     page = await browser.newPage({ viewport, deviceScaleFactor: dpr, isMobile: true, hasTouch: true });
+    await page.exposeFunction('__qaStateUpdate', value => { pushedState = value; });
     page.on('console', m => { if (evidence.logs.length < 250) evidence.logs.push({ type: m.type(), text: m.text() }); });
     page.on('pageerror', e => evidence.errors.push(e.stack || String(e)));
     page.on('requestfailed', r => evidence.failedRequests.push({ url: r.url(), error: r.failure() }));
