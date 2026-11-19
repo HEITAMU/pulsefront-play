@@ -15,11 +15,25 @@ System.register([], function (exports_1, context_1) {
     function createAudioContext() {
         const host = getWeChat();
         if (host && typeof host.createWebAudioContext === 'function') {
-            return host.createWebAudioContext();
+            try {
+                const context = host.createWebAudioContext();
+                if (context)
+                    return context;
+            }
+            catch { }
         }
         const scope = globalThis;
         const AudioContextClass = scope.AudioContext || scope.webkitAudioContext;
-        return AudioContextClass ? new AudioContextClass({ latencyHint: 'interactive' }) : null;
+        if (!AudioContextClass)
+            return null;
+        try {
+            return new AudioContextClass({ latencyHint: 'interactive' });
+        }
+        catch {
+            // Older iOS WebKit contexts may reject constructor options.
+            try { return new AudioContextClass(); }
+            catch { return null; }
+        }
     }
     exports_1("createAudioContext", createAudioContext);
     /** Optionally use Cocos sys.localStorage; tests can inject an in-memory adapter. */
