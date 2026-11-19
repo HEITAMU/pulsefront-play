@@ -1,4 +1,4 @@
-System.register(["cc", "../core/engine.js?v=4592cf42476a57b5", "./NativeDraw2D.js?v=4592cf42476a57b5"], function (exports_1, context_1) {
+System.register(["cc", "../core/engine.js?v=56ad489c6a4bccde", "./NativeDraw2D.js?v=56ad489c6a4bccde"], function (exports_1, context_1) {
     "use strict";
     var cc_1, engine_js_1, NativeDraw2D_js_1, TAU, SPRITE_KIND, BattleView;
     var __moduleName = context_1 && context_1.id;
@@ -46,11 +46,25 @@ System.register(["cc", "../core/engine.js?v=4592cf42476a57b5", "./NativeDraw2D.j
                     this.backdrop = 'backdrop-0';
                     this.dustLayer = 'dust-0';
                     this.vignette = 'vignette';
+                    this.starLayers = [];
+                    this.starWidth = 0;
+                    this.starHeight = 0;
                     this.root = new cc_1.Node('Battle artwork');
                     this.root.layer = parent.layer;
                     parent.addChild(this.root);
                     this.root.addComponent(cc_1.UITransform).setAnchorPoint(0, 1);
-                    this.ctx = new NativeDraw2D_js_1.NativeDraw2D(this.root);
+                    const layer = (name) => {
+                        const node = new cc_1.Node(name);
+                        node.layer = parent.layer;
+                        this.root.addChild(node);
+                        node.addComponent(cc_1.UITransform).setAnchorPoint(0, 1);
+                        return node;
+                    };
+                    this.sky = layer('Space clear color').addComponent(cc_1.Graphics);
+                    this.background = new NativeDraw2D_js_1.NativeDraw2D(layer('Space background'));
+                    this.starRoot = layer('Retained starfield');
+                    this.foregroundShade = new NativeDraw2D_js_1.NativeDraw2D(layer('Space vignette'));
+                    this.ctx = new NativeDraw2D_js_1.NativeDraw2D(layer('Battle paths'));
                     for (const type of ['drone', 'runner', 'tank', 'splitter', 'mini', 'boss'])
                         this.sprites[type] = type;
                     const seed = engine_js_1.rng(817);
@@ -66,8 +80,11 @@ System.register(["cc", "../core/engine.js?v=4592cf42476a57b5", "./NativeDraw2D.j
                                 reject(error);
                                 return;
                             }
-                            if (!this.disposed)
+                            if (!this.disposed) {
                                 this.ctx.setFrame(name, frame);
+                                this.background.setFrame(name, frame);
+                                this.foregroundShade.setFrame(name, frame);
+                            }
                             resolve();
                         });
                     }))).then(() => { });
@@ -78,6 +95,17 @@ System.register(["cc", "../core/engine.js?v=4592cf42476a57b5", "./NativeDraw2D.j
                     this.lite = lite;
                     this.root.getComponent(cc_1.UITransform).setContentSize(width, height);
                     this.ctx.resize(width, height);
+                    this.background.resize(width, height);
+                    this.foregroundShade.resize(width, height);
+                    if (this.starWidth !== width || this.starHeight !== height) {
+                        this.starWidth = width;
+                        this.starHeight = height;
+                        this.sky.clear();
+                        this.sky.fillColor = new cc_1.Color(6, 11, 24, 255);
+                        this.sky.rect(0, -height, width, height);
+                        this.sky.fill();
+                        this.buildStarfield();
+                    }
                 }
                 setChapter(chapter) {
                     this.chapter = Math.max(0, Math.min(9, Math.floor(chapter)));
@@ -92,18 +120,80 @@ System.register(["cc", "../core/engine.js?v=4592cf42476a57b5", "./NativeDraw2D.j
                     this.ctx.beginFrame();
                     this.ctx.endFrame();
                 }
-                destroy() { this.disposed = true; this.ctx.destroy(); this.root.destroy(); }
-                get stats() { return this.ctx.stats; }
+                destroy() { this.disposed = true; this.ctx.destroy(); this.background.destroy(); this.foregroundShade.destroy(); this.root.destroy(); }
+                get stats() {
+                    const a = this.ctx.stats, b = this.background.stats, c = this.foregroundShade.stats;
+                    return { ...a, graphics: a.graphics + b.graphics + c.graphics + 1 + this.starLayers.filter(s => s.node.active).length,
+                        sprites: a.sprites + b.sprites + c.sprites, labels: a.labels + b.labels + c.labels,
+                        retainedNodes: a.retainedNodes + b.retainedNodes + c.retainedNodes + 1 + this.starLayers.length,
+                        nodeLimit: a.nodeLimit + 10, droppedCommands: a.droppedCommands + b.droppedCommands + c.droppedCommands };
+                }
                 render(battle, time, phase = 0, home = false) {
+                    const shake = this.shake > .1 ? this.shake : 0;
+                    this.root.setPosition(shake ? (Math.random() - .5) * shake : 0, shake ? (Math.random() - .5) * shake : 0);
+                    this.drawBackground(time);
                     this.ctx.beginFrame();
                     try {
-                        this.ctx.fillStyle = '#060b18';
-                        this.ctx.fillRect(0, 0, this.w, this.h);
                         this.draw(battle, time, phase, home);
                     }
                     finally {
                         this.ctx.endFrame();
                     }
+                }
+                buildStarfield() {
+                    // Six retained meshes represent the three existing depth layers and their
+                    // vertical wrap copies. No star polygons are tessellated during a frame.
+                    // Textures and framebuffer density are untouched by this optimization.
+                    for (let layer = 0; layer < 3; layer++)
+                        for (let copy = 0; copy < 2; copy++) {
+                            const index = layer * 2 + copy;
+                            let slot = this.starLayers[index];
+                            if (!slot) {
+                                const node = new cc_1.Node('Star layer ' + layer + ' / ' + copy);
+                                node.layer = this.root.layer;
+                                this.starRoot.addChild(node);
+                                node.addComponent(cc_1.UITransform).setAnchorPoint(0, 1);
+                                slot = { node, graphic: node.addComponent(cc_1.Graphics), layer, copy };
+                                this.starLayers.push(slot);
+                            }
+                            slot.node.getComponent(cc_1.UITransform).setContentSize(this.w, this.h);
+                            const g = slot.graphic;
+                            g.clear();
+                            for (const star of this.stars) {
+                                if (star.layer !== layer)
+                                    continue;
+                                const x = star.x * this.w, y = star.y * this.h, size = star.size * (.65 + layer * .4);
+                                const alpha = star.alpha * (.9 + .1 * Math.sin(star.x * 20));
+                                g.fillColor = layer === 2 ? new cc_1.Color(231, 215, 189, alpha * 255) : new cc_1.Color(186, 203, 216, alpha * 255);
+                                g.rect(x, -y - size, size, size);
+                                g.fill();
+                                if (layer === 2) {
+                                    g.fillColor = new cc_1.Color(231, 215, 189, alpha * .2 * 255);
+                                    g.rect(x, -y, size, 4);
+                                    g.fill();
+                                }
+                            }
+                        }
+                }
+                drawBackground(time) {
+                    const c = this.background, w = this.w, h = this.h;
+                    const driftX = this.lite ? 0 : Math.sin(time * .025) * 5, driftY = this.lite ? 0 : Math.cos(time * .019) * 7;
+                    c.beginFrame();
+                    c.drawImage(this.backdrop, -10 + driftX, -12 + driftY, w + 20, h + 24);
+                    c.globalAlpha = this.lite ? .5 : .65 + .15 * Math.sin(time * .06);
+                    c.drawImage(this.dustLayer, -15 - driftX * 1.5, -20 - driftY, w + 30, h + 40);
+                    c.endFrame();
+                    for (const slot of this.starLayers) {
+                        slot.node.active = !(this.lite && (slot.layer === 2 || slot.copy === 1));
+                        const motion = this.lite ? 0 : time;
+                        const scroll = (motion * (.85 + slot.layer * 2.2)) % h;
+                        const drift = this.lite ? 0 : Math.sin(motion * .035 + slot.layer) * (slot.layer + 1) * 3;
+                        slot.node.setPosition(drift, -scroll + slot.copy * h);
+                    }
+                    const shade = this.foregroundShade;
+                    shade.beginFrame();
+                    shade.drawImage(this.vignette, 0, 0, w, h);
+                    shade.endFrame();
                 }
                 addFx(p) { const cap = this.lite ? 160 : 360, ringCap = this.lite ? 28 : 64; if (p.ring) {
                     const rings = this.fx.filter(f => f.ring);
@@ -178,31 +268,6 @@ System.register(["cc", "../core/engine.js?v=4592cf42476a57b5", "./NativeDraw2D.j
                 draw(battle, time, phase = 0, home = false) {
                     const c = this.ctx, w = this.w, h = this.h, [, accent, secondary] = engine_js_1.CHAPTERS[this.chapter];
                     c.save();
-                    if (this.shake > .1)
-                        c.translate((Math.random() - .5) * this.shake, (Math.random() - .5) * this.shake);
-                    const driftX = this.lite ? 0 : Math.sin(time * .025) * 5, driftY = this.lite ? 0 : Math.cos(time * .019) * 7;
-                    c.drawImage(this.backdrop, -10 + driftX, -12 + driftY, w + 20, h + 24);
-                    if (this.dustLayer) {
-                        c.globalAlpha = this.lite ? .5 : .65 + .15 * Math.sin(time * .06);
-                        c.drawImage(this.dustLayer, -15 - driftX * 1.5, -20 - driftY, w + 30, h + 40);
-                    }
-                    c.globalAlpha = 1;
-                    for (const star of this.stars) {
-                        if (this.lite && star.layer === 2)
-                            continue;
-                        const motion = this.lite ? 0 : time, depth = star.layer + 1, x = ((star.x * w + Math.sin(motion * .035 + star.y * 3) * depth * 3) % w + w) % w, y = (star.y * h + motion * star.speed) % h;
-                        c.globalAlpha = star.alpha * (.9 + .1 * Math.sin(motion * .5 + star.x * 20));
-                        c.fillStyle = star.layer === 2 ? '#e7d7bd' : '#bacbd8';
-                        const size = star.size * (.65 + star.layer * .4);
-                        c.fillRect(x, y, size, size);
-                        if (star.layer === 2 && !this.lite) {
-                            c.globalAlpha *= .2;
-                            c.fillRect(x, y - 4, size, 4);
-                        }
-                    }
-                    c.globalAlpha = 1;
-                    if (this.vignette)
-                        c.drawImage(this.vignette, 0, 0, w, h);
                     if (home) {
                         this.drawHome(time);
                         c.restore();

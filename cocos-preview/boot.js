@@ -1,5 +1,5 @@
-import {registerBuiltinEffects} from './builtin-effects.js?v=4592cf42476a57b5';
-import {preloadArt} from './preload-art.js?v=4592cf42476a57b5';
+import {registerBuiltinEffects} from './builtin-effects.js?v=56ad489c6a4bccde';
+import {preloadArt} from './preload-art.js?v=56ad489c6a4bccde';
 const status=document.querySelector('#status');
 window.__smokeErrors=[];
 const stages={
@@ -64,9 +64,9 @@ try {
   await cc.game.init({overrideSettings:{screen:{designResolution:{width:420,height:840,policy:cc.ResolutionPolicy.FIXED_WIDTH},orientation:'portrait',frameRate:60},rendering:{renderMode:2,customPipeline:false},splashScreen:{totalTime:0},profiling:{showFPS:false},assets:{preloadBundles:[],preloadAssets:[]}}});
   window.__smokeStage='resources';await preloadArt(cc);
   window.__smokeStage='controller';
-  const {Pulsefront}=await System.import('./scripts/Pulsefront.js?v=4592cf42476a57b5');
+  const {Pulsefront}=await System.import('./scripts/Pulsefront.js?v=56ad489c6a4bccde');
   window.__smokeStage='scene-data';
-  const sceneResponse=await fetch('./Main.scene?v=4592cf42476a57b5');if(!sceneResponse.ok)throw new Error('主场景读取失败：HTTP '+sceneResponse.status);
+  const sceneResponse=await fetch('./Main.scene?v=56ad489c6a4bccde');if(!sceneResponse.ok)throw new Error('主场景读取失败：HTTP '+sceneResponse.status);
   const sceneData=await sceneResponse.json();
   // Register the exact script meta id used in the deliverable scene so the real deserializer resolves it.
   cc.js._setClassId('8f5a73AOmtLlKCEpwujPXwh',Pulsefront);

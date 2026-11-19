@@ -1,4 +1,4 @@
-System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v=4592cf42476a57b5", "./core/audio.js?v=4592cf42476a57b5", "./core/tutorial.js?v=4592cf42476a57b5", "./core/sway.js?v=4592cf42476a57b5", "./core/campaign.js?v=4592cf42476a57b5", "./core/economy.js?v=4592cf42476a57b5", "./core/growth.js?v=4592cf42476a57b5", "./core/support.js?v=4592cf42476a57b5", "./platform/Platform.js?v=4592cf42476a57b5", "./view/BattleView.js?v=4592cf42476a57b5", "./view/SupportPreviewView.js?v=4592cf42476a57b5", "./ui/Primitives.js?v=4592cf42476a57b5", "./ui/CannonButton.js?v=4592cf42476a57b5"], function (exports_1, context_1) {
+System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v=56ad489c6a4bccde", "./core/audio.js?v=56ad489c6a4bccde", "./core/clock.js?v=56ad489c6a4bccde", "./core/tutorial.js?v=56ad489c6a4bccde", "./core/sway.js?v=56ad489c6a4bccde", "./core/campaign.js?v=56ad489c6a4bccde", "./core/economy.js?v=56ad489c6a4bccde", "./core/growth.js?v=56ad489c6a4bccde", "./core/support.js?v=56ad489c6a4bccde", "./platform/Platform.js?v=56ad489c6a4bccde", "./view/BattleView.js?v=56ad489c6a4bccde", "./view/SupportPreviewView.js?v=56ad489c6a4bccde", "./ui/Primitives.js?v=56ad489c6a4bccde", "./ui/CannonButton.js?v=56ad489c6a4bccde"], function (exports_1, context_1) {
     "use strict";
     var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -6,7 +6,7 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
         else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
         return c > 3 && r && Object.defineProperty(target, key, r), r;
     };
-    var cc_1, engine_js_1, music_js_1, audio_js_1, tutorial_js_1, sway_js_1, campaign_js_1, economy_js_1, growth_js_1, support_js_1, Platform_js_1, BattleView_js_1, SupportPreviewView_js_1, Primitives_js_1, CannonButton_js_1, ccclass, clamp, Pulsefront;
+    var cc_1, engine_js_1, music_js_1, audio_js_1, clock_js_1, tutorial_js_1, sway_js_1, campaign_js_1, economy_js_1, growth_js_1, support_js_1, Platform_js_1, BattleView_js_1, SupportPreviewView_js_1, Primitives_js_1, CannonButton_js_1, ccclass, clamp, Pulsefront;
     var __moduleName = context_1 && context_1.id;
     return {
         setters: [
@@ -21,6 +21,9 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
             },
             function (audio_js_1_1) {
                 audio_js_1 = audio_js_1_1;
+            },
+            function (clock_js_1_1) {
+                clock_js_1 = clock_js_1_1;
             },
             function (tutorial_js_1_1) {
                 tutorial_js_1 = tutorial_js_1_1;
@@ -93,6 +96,10 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                     this.resizePending = false;
                     this.assetsLoaded = false;
                     this.intent = 0;
+                    this.hudBarsKey = '';
+                    this.hudGrooveKey = '';
+                    this.hudBeatKey = -2;
+                    this.simulationSteps = 0;
                 }
                 onLoad() {
                     Platform_js_1.setStorageAdapter(cc_1.sys.localStorage);
@@ -130,10 +137,15 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                     cc_1.view.on('canvas-resize', this.onResize, this);
                     // Read-only diagnostics. No currency, progression, or input cheats in the shipped game.
                     globalThis.pulsefront = Object.freeze({
-                        version: engine_js_1.VERSION + '-cocos.3', engine: 'Cocos Creator 3.8.8',
+                        version: engine_js_1.VERSION + '-cocos.4', engine: 'Cocos Creator 3.8.8',
                         snapshot: () => ({ mode: this.mode, panel: this.panel?.root.name ?? null, ...this.battle?.snapshot(), lesson: this.lesson?.stage ?? null,
                             held: this.pressed, unlocked: this.save.unlocked, coins: this.save.economy.coins, completed: Object.keys(this.save.stars).length,
-                            storageAvailable: Platform_js_1.storageAvailable, audio: { available: !!this.audio.ctx, state: this.audio.ctx?.state, running: this.audio.running, position: this.audio.position(this.musicElapsed) } }),
+                            storageAvailable: Platform_js_1.storageAvailable, duration: this.battle?.c.duration ?? null, beatDuration: this.battle?.beatDuration ?? null,
+                            clearing: !!this.battle?.clearing, simulationSteps: this.simulationSteps,
+                            audio: { available: !!this.audio.ctx, state: this.audio.ctx?.state, running: this.audio.running,
+                                position: this.audio.position(this.musicElapsed), contextTime: this.audio.ctx?.currentTime,
+                                trackDuration: this.audio.track.duration, musicLevel: this.audio.musicLevel(this.audio.position(this.musicElapsed)),
+                                musicGain: this.audio.music?.gain.value } }),
                         config: Object.freeze({ stages: 100, tracks: 100, genres: 10, cannonSounds: false, adsConfigured: this.ads.configured }),
                     });
                 }
@@ -232,7 +244,7 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                     const utilityY = groupY + groupH + 13, utilityW = (inner - 10) / 2;
                     Primitives_js_1.button(this.home, 'hangar', '◈   机库外观', pad, utilityY, utilityW, 45, () => this.showHangar(), { size: 11, fill: '#142531cf', radius: 12, align: 'left', arrow: true });
                     Primitives_js_1.button(this.home, 'music', '♫   星际唱片机', pad + utilityW + 10, utilityY, utilityW, 45, () => this.showMusic(), { size: 11, fill: '#142531cf', radius: 12, align: 'left', arrow: true });
-                    Primitives_js_1.text(this.home, 'v1.8.2 · C3', 26, h - 16 - this.safeBottom, 140, 13, { size: 7, color: '#68808b', wrap: false });
+                    Primitives_js_1.text(this.home, 'v1.8.2 · C4', 26, h - 16 - this.safeBottom, 140, 13, { size: 7, color: '#68808b', wrap: false });
                     this.labels.loading = Primitives_js_1.text(this.home, this.assetsLoaded ? '' : '正在载入星域…', 26, heroTop + 274, w - 52, 25, { size: 10, color: '#95b6bb' });
                 }
                 buildTop() {
@@ -260,6 +272,8 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                         this.cannon.lite = this.save.settings.lite;
                 }
                 buildBattleUI() {
+                    this.hudBarsKey = this.hudGrooveKey = '';
+                    this.hudBeatKey = -2;
                     const y = this.safeTop + 21, capsule = Primitives_js_1.card(this.hud, 'FlightCapsule', 22, y, this.w - 134, 42, '#142332df', '#94b6c340', 14);
                     Primitives_js_1.text(capsule, 'SECTOR', 10, 5, 40, 11, { size: 6, color: '#8ba9b7', wrap: false });
                     this.labels.level = Primitives_js_1.text(capsule, '01', 10, 16, 34, 24, { size: 18, bold: true, wrap: false });
@@ -357,7 +371,7 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                     this.resultWait = 0;
                     this.labels.level.string = String(level).padStart(2, '0');
                     this.labels.bpm.string = track.bpm + ' BPM';
-                    this.audio.start(level, 0, !!this.lesson);
+                    this.audio.start(level, 0, !!this.lesson, true);
                     this.buildTop();
                     this.refreshHome();
                     this.loading = false;
@@ -385,7 +399,9 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                 pauseGame() {
                     if (this.mode !== 'playing')
                         return;
-                    this.musicElapsed = this.audio.position(this.musicElapsed);
+                    // Pause at the last simulated position, including after a long interruption.
+                    // The audio clock may have continued while JavaScript could not render.
+                    this.musicElapsed = this.lesson ? this.musicElapsed : this.battle?.t ?? this.musicElapsed;
                     this.resetInput();
                     this.audio.stop();
                     this.mode = 'paused';
@@ -402,7 +418,7 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                     this.resetInput();
                     this.closePanel();
                     this.mode = 'playing';
-                    this.audio.start(b.c.level, this.musicElapsed, !!this.lesson);
+                    this.audio.start(b.c.level, this.musicElapsed, !!this.lesson, true);
                     this.buildTop();
                 }
                 onHide() { this.intent++; this.loading = false; if (this.mode === 'playing')
@@ -422,7 +438,7 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                     const b = this.battle, run = this.activeRun, ticket = this.intent;
                     const unlocked = await this.audio.unlock();
                     if (unlocked && !this.destroyed && this.mode === 'playing' && !this.loading && this.battle === b && this.activeRun === run && this.intent === ticket && !this.audio.running)
-                        this.audio.start(b.c.level, this.musicElapsed, !!this.lesson);
+                        this.audio.start(b.c.level, this.musicElapsed, !!this.lesson, true);
                 }
                 point(e) {
                     const p = e.getUILocation(), v = this.root.getComponent(cc_1.UITransform).convertToNodeSpaceAR(new cc_1.Vec3(p.x, p.y, 0));
@@ -550,7 +566,7 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                     }
                     if (type === 'finish') {
                         this.mode = 'result';
-                        this.musicElapsed = this.audio.position(this.musicElapsed);
+                        this.musicElapsed = this.lesson ? this.musicElapsed : this.battle.t;
                         this.resetInput();
                         this.audio.finish(data.win);
                         this.activeRun.salvage = data.win ? 0 : growth_js_1.salvage(this.save.economy, this.activeRun.id, data.kills);
@@ -568,27 +584,38 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                 update(rawDt) {
                     if (!this.renderer || this.destroyed)
                         return;
-                    const dt = Math.min(rawDt, .05);
+                    const elapsed = Number.isFinite(rawDt) ? Math.max(0, rawDt) : 0;
+                    const dt = Math.min(elapsed, .05);
                     this.visualTime += dt;
+                    this.simulationSteps = 0;
                     if (this.resizePending)
                         this.rebuildLayout();
                     this.supportDemo?.update(dt);
                     if (this.mode === 'playing' && this.battle && !this.loading) {
-                        this.musicElapsed += dt;
-                        this.battle.rhythmTime = this.audio.position(this.musicElapsed);
-                        if (this.lesson?.done) {
+                        const previous = this.musicElapsed;
+                        const target = Math.max(previous, this.audio.position(previous + elapsed));
+                        const gap = target - previous, audioState = this.audio.ctx?.state;
+                        const interrupted = this.audio.running && (audioState === 'suspended' || audioState === 'interrupted' || audioState === 'closed');
+                        if (interrupted || gap > clock_js_1.MAX_CATCHUP_SECONDS + 1e-8 || (!this.lesson && target - this.battle.t > clock_js_1.MAX_CATCHUP_SECONDS + 1e-8)) {
+                            this.pauseGame();
+                        }
+                        else if (this.lesson?.done) {
                             this.save.swipeLearned = true;
                             this.persist();
-                            this.lesson = null;
                             this.launch(1, true);
                         }
                         else {
-                            const scale = this.lesson ? this.lesson.tick(dt, this.pressed) : 1;
-                            this.battle.step(dt * scale, this.phase());
+                            this.musicElapsed = target;
                             if (this.lesson) {
+                                const scale = this.lesson.tick(gap, this.pressed);
+                                this.simulationSteps = clock_js_1.advanceBattleBy(this.battle, gap * scale, previous, target);
                                 this.battle.t = Math.min(this.battle.t, 10);
                                 this.battle.hp = 100;
                             }
+                            else {
+                                this.simulationSteps = clock_js_1.advanceBattleTo(this.battle, target);
+                            }
+                            this.battle.rhythmTime = target;
                         }
                     }
                     if (this.resultWait > 0) {
@@ -598,8 +625,9 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                     }
                     if (this.mode === 'home' || this.mode === 'playing' || this.mode === 'result')
                         this.renderer.update(dt);
-                    this.renderer.render(this.battle, this.visualTime, this.phase(), this.mode === 'home');
-                    if (this.battle)
+                    if (this.mode !== 'paused')
+                        this.renderer.render(this.battle, this.visualTime, this.phase(), this.mode === 'home');
+                    if (this.battle && this.mode !== 'paused')
                         this.updateHUD(dt);
                     if (this.visualTime > this.bannerUntil) {
                         this.bannerMain.string = '';
@@ -609,35 +637,53 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                 updateHUD(dt) {
                     const b = this.battle, phase = this.phase(), beat = b.beatDuration, lit = Math.min(phase, beat - phase) < .13;
                     const index = Math.floor((b.rhythmTime + beat * .08) / beat) % 4, g = this.bars;
-                    g.clear();
                     this.labels.time.string = b.clearing ? '已清场' : b.t < b.c.duration ? Math.ceil(b.c.duration - b.t) + 's' : '清场';
                     this.labels.hp.string = '◈ ' + Math.ceil(b.hp);
-                    Primitives_js_1.rounded(g, 97, this.safeTop + 49, 70, 3, 1.5, '#334755');
-                    Primitives_js_1.rounded(g, 97, this.safeTop + 49, Math.max(3, 70 * Math.min(1, b.t / b.c.duration)), 3, 1.5, '#b6dccb');
                     const boss = b.enemies.find((e) => e.boss);
                     this.labels.boss.string = boss ? '首领  ·  ' + Math.ceil(boss.hp / boss.maxHp * 100) + '%' : '';
-                    if (boss) {
-                        Primitives_js_1.rounded(g, 55, this.safeTop + 97, this.w - 110, 4, 2, '#3a2939');
-                        Primitives_js_1.rounded(g, 55, this.safeTop + 97, Math.max(4, (this.w - 110) * Math.max(0, boss.hp / boss.maxHp)), 4, 2, '#ffd1a4');
-                    }
                     this.labels.combo.string = b.combo >= 3 ? b.combo + '\n连击' : '';
                     const over = b.overdrive > 0, energy = over ? b.overdrive / 5.3 : b.energy / 100;
                     this.labels.charge.string = over ? '火力超载' : '超载能量';
                     this.labels.energy.string = over ? Math.ceil(b.overdrive) + 's' : Math.floor(b.energy) + '%';
-                    Primitives_js_1.rounded(g, 105, this.h - 29 - this.safeBottom, this.w - 180, 8, 4, '#263d48');
-                    if (energy > 0)
-                        Primitives_js_1.rounded(g, 105, this.h - 29 - this.safeBottom, Math.max(8, (this.w - 180) * energy), 8, 4, '#edd08e');
+                    // Half a design pixel is below one backing pixel on common phone layouts.
+                    // Rebuild bar geometry only when a visible width actually changes.
+                    const pixelWidth = (value) => Math.round(value * 2) / 2;
+                    const timeWidth = pixelWidth(Math.max(3, 70 * Math.min(1, b.t / b.c.duration)));
+                    const bossWidth = boss ? pixelWidth(Math.max(4, (this.w - 110) * Math.max(0, boss.hp / boss.maxHp))) : 0;
+                    const energyWidth = energy > 0 ? pixelWidth(Math.max(8, (this.w - 180) * energy)) : 0;
+                    const barsKey = timeWidth + '/' + bossWidth + '/' + energyWidth;
+                    if (barsKey !== this.hudBarsKey) {
+                        this.hudBarsKey = barsKey;
+                        g.clear();
+                        Primitives_js_1.rounded(g, 97, this.safeTop + 49, 70, 3, 1.5, '#334755');
+                        Primitives_js_1.rounded(g, 97, this.safeTop + 49, timeWidth, 3, 1.5, '#b6dccb');
+                        if (boss) {
+                            Primitives_js_1.rounded(g, 55, this.safeTop + 97, this.w - 110, 4, 2, '#3a2939');
+                            Primitives_js_1.rounded(g, 55, this.safeTop + 97, bossWidth, 4, 2, '#ffd1a4');
+                        }
+                        Primitives_js_1.rounded(g, 105, this.h - 29 - this.safeBottom, this.w - 180, 8, 4, '#263d48');
+                        if (energyWidth)
+                            Primitives_js_1.rounded(g, 105, this.h - 29 - this.safeBottom, energyWidth, 8, 4, '#edd08e');
+                    }
                     const cue = b.director?.cueState(), phaseName = b.musicPhase || 'groove';
                     this.labels.phase.string = cue ? (cue.status === 'matched' ? '✓ 节拍压制' : cue.heavy ? '重甲 · 踩拍' : '群袭 · 踩拍') : { groove: '律动', build: '蓄势', climax: b.support.rank >= 8 ? '收割' : '高潮', outro: '收尾' }[phaseName];
                     this.labels.hits.string = cue ? cue.status === 'matched' ? '成功' : cue.status === 'hit' ? '现在！' : cue.count + ' 拍后' : b.clearing ? '' : `连拍 ${b.support.progress()}/3 · 副炮 ×${b.support.rank}`;
                     this.labels.instruction.string = phaseName === 'climax' ? '长按增强 · 踩中4拍追加音爆 · 漏拍不清零' : phaseName === 'build' ? '准备跟上鼓点，高潮马上到来' : phaseName === 'outro' ? '保持火力，完成收尾' : '点按或左右摇摆 · 踩拍强化';
-                    this.grooveGraphics.clear();
-                    Primitives_js_1.rounded(this.grooveGraphics, 0, 0, this.w - 50, 48, 12, over ? '#59452cee' : '#244239ee', lit ? '#eefac2' : '#a1d4ba', lit ? 2.4 : 1.5);
-                    this.beatGraphics.clear();
-                    for (let i = 0; i < 4; i++) {
-                        this.beatGraphics.circle(this.w / 2 - 27 + i * 18, -(this.h - 211 - this.safeBottom), lit && i === index ? 5 : 3.5);
-                        this.beatGraphics.fillColor = Primitives_js_1.color(lit && i === index ? '#e2ffd3' : '#3b6266');
-                        this.beatGraphics.fill();
+                    const grooveKey = (over ? '1' : '0') + (lit ? '1' : '0');
+                    if (grooveKey !== this.hudGrooveKey) {
+                        this.hudGrooveKey = grooveKey;
+                        this.grooveGraphics.clear();
+                        Primitives_js_1.rounded(this.grooveGraphics, 0, 0, this.w - 50, 48, 12, over ? '#59452cee' : '#244239ee', lit ? '#eefac2' : '#a1d4ba', lit ? 2.4 : 1.5);
+                    }
+                    const beatKey = lit ? index : -1;
+                    if (beatKey !== this.hudBeatKey) {
+                        this.hudBeatKey = beatKey;
+                        this.beatGraphics.clear();
+                        for (let i = 0; i < 4; i++) {
+                            this.beatGraphics.circle(this.w / 2 - 27 + i * 18, -(this.h - 211 - this.safeBottom), lit && i === index ? 5 : 3.5);
+                            this.beatGraphics.fillColor = Primitives_js_1.color(lit && i === index ? '#e2ffd3' : '#3b6266');
+                            this.beatGraphics.fill();
+                        }
                     }
                     this.cannon.update(dt, this.visualTime, phase, beat, b.aim, over, this.renderer.skin?.color || '#a8fbd6', this.lesson?.stage === 1);
                     this.tutorialBox.active = !!this.lesson;
@@ -889,7 +935,7 @@ System.register(["cc", "./core/engine.js?v=4592cf42476a57b5", "./core/music.js?v
                     p.finish(y + 99);
                 }
                 reviveBattle() { if (!this.battle.revive())
-                    return; this.renderer.clear(); this.mode = 'paused'; this.resultWait = 0; this.resume(); }
+                    return; this.musicElapsed = this.lesson ? this.musicElapsed : this.battle.t; this.renderer.clear(); this.mode = 'paused'; this.resultWait = 0; this.resume(); }
                 offerReward(placement, r) {
                     const p = this.showPanel('自愿观看 · 额外奖励', 'OPTIONAL REWARD', () => this.showResult(r), () => this.offerReward(placement, r)), w = p.width;
                     Primitives_js_1.text(p.body, placement === 'clear_double' ? `完整观看广告后额外获得 ${this.activeRun.receipt.base} 星屑。` : '完整观看广告后恢复60护盾，本局可续战一次。', 0, 0, w, 75, { size: 14 });
