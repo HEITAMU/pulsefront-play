@@ -1,4 +1,4 @@
-System.register(["./rhythm.js?v=81a7a01cc2f828cc", "../platform/Platform.js?v=81a7a01cc2f828cc", "./arrangement.js?v=81a7a01cc2f828cc", "./music.js?v=81a7a01cc2f828cc"], function (exports_1, context_1) {
+System.register(["./rhythm.js?v=81a7a01cc2f828cc", "../platform/Platform.js?v=81a7a01cc2f828cc-mobile-audio1", "./arrangement.js?v=81a7a01cc2f828cc", "./music.js?v=81a7a01cc2f828cc"], function (exports_1, context_1) {
     "use strict";
     var rhythm_js_1, Platform_js_1, arrangement_js_1, music_js_1, Soundtrack;
     var __moduleName = context_1 && context_1.id;
@@ -76,10 +76,16 @@ System.register(["./rhythm.js?v=81a7a01cc2f828cc", "../platform/Platform.js?v=81
                         // another gesture, leaving the menu's continue button stuck.
                         const pending = context.resume();
                         if (pending && typeof pending.then === 'function') {
-                            await Promise.race([
-                                Promise.resolve(pending).catch(() => { }),
-                                new Promise(resolve => setTimeout(resolve, 1100))
-                            ]);
+                            let timeout;
+                            try {
+                                await Promise.race([
+                                    Promise.resolve(pending).catch(() => { }),
+                                    new Promise(resolve => { timeout = setTimeout(resolve, 1100); })
+                                ]);
+                            }
+                            finally {
+                                clearTimeout(timeout);
+                            }
                         }
                         // A late completion from an older or disposed context must not
                         // be mistaken for a successful unlock.
