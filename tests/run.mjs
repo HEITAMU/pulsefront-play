@@ -1,3 +1,4 @@
+await import('./cocos-mobile-audio-unlock.mjs');
 await import('./growth-rewards.mjs');
 // Current wave-only rules. Historical laser/auto-clear trials remain archived.
 await import('./crest-combat.mjs');
