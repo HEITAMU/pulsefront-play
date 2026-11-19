@@ -64,7 +64,7 @@ try {
   await cc.game.init({overrideSettings:{screen:{designResolution:{width:420,height:840,policy:cc.ResolutionPolicy.FIXED_WIDTH},orientation:'portrait',frameRate:60},rendering:{renderMode:2,customPipeline:false},splashScreen:{totalTime:0},profiling:{showFPS:false},assets:{preloadBundles:[],preloadAssets:[]}}});
   window.__smokeStage='resources';await preloadArt(cc);
   window.__smokeStage='controller';
-  const {Pulsefront}=await System.import('./scripts/Pulsefront.js?v=81a7a01cc2f828cc');
+  const {Pulsefront}=await System.import('./scripts/Pulsefront.js?v=81a7a01cc2f828cc-mobile-audio1');
   window.__smokeStage='scene-data';
   const sceneResponse=await fetch('./Main.scene?v=81a7a01cc2f828cc');if(!sceneResponse.ok)throw new Error('主场景读取失败：HTTP '+sceneResponse.status);
   const sceneData=await sceneResponse.json();
