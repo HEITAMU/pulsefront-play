@@ -74,9 +74,9 @@ assert.ok(Date.now() - startedAt < 800, 'resume timeout must not freeze the menu
 const boot = readFileSync(new URL('../cocos-preview/boot.js', import.meta.url), 'utf8');
 const controller = readFileSync(new URL('../cocos-preview/scripts/Pulsefront.js', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../cocos-preview/index.html', import.meta.url), 'utf8');
-assert.match(html, /boot\\.js\\?v=[^"']+-mobile-audio1/);
-assert.match(boot, /Pulsefront\\.js\\?v=[^"']+-mobile-audio1/);
-assert.match(controller, /core\\/audio\\.js\\?v=[^"']+-mobile-audio1/);
-assert.match(controller, /platform\\/Platform\\.js\\?v=[^"']+-mobile-audio1/);
-assert.match(source, /platform\\/Platform\\.js\\?v=[^"']+-mobile-audio1/);
+assert.match(html, /boot\.js\?v=[^"']+-mobile-audio1/);
+assert.match(boot, /Pulsefront\.js\?v=[^"']+-mobile-audio1/);
+assert.match(controller, /core\/audio\.js\?v=[^"']+-mobile-audio1/);
+assert.match(controller, /platform\/Platform\.js\?v=[^"']+-mobile-audio1/);
+assert.match(source, /platform\/Platform\.js\?v=[^"']+-mobile-audio1/);
 console.log('Cocos mobile audio unlock/retry/fallback/cache smoke: PASS');
