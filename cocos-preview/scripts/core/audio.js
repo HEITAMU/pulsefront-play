@@ -1,4 +1,4 @@
-System.register(["./rhythm.js?v=4592cf42476a57b5", "../platform/Platform.js?v=4592cf42476a57b5", "./arrangement.js?v=4592cf42476a57b5", "./music.js?v=4592cf42476a57b5"], function (exports_1, context_1) {
+System.register(["./rhythm.js?v=56ad489c6a4bccde", "../platform/Platform.js?v=56ad489c6a4bccde", "./arrangement.js?v=56ad489c6a4bccde", "./music.js?v=56ad489c6a4bccde"], function (exports_1, context_1) {
     "use strict";
     var rhythm_js_1, Platform_js_1, arrangement_js_1, music_js_1, Soundtrack;
     var __moduleName = context_1 && context_1.id;
@@ -37,25 +37,40 @@ System.register(["./rhythm.js?v=4592cf42476a57b5", "../platform/Platform.js?v=45
                     this.disconnectTimers = new Set();
                     this.generation = 0;
                     this.tutorialLoop = false;
+                    this.combatTail = false;
+                    this.arrangementTrack = null;
+                    this.cachedArrangement = null;
                 }
                 async unlock() {
+                    let context = this.ctx;
                     try {
-                        if (!this.ctx) {
-                            const context = this.createContext();
-                            if (!context)
-                                return false;
-                            this.setup(context);
+                        // A closed context cannot resume. Release its voices/buses before replacing it.
+                        if (context?.state === 'closed') {
+                            this.dispose();
+                            context = null;
                         }
-                        if (this.ctx.state === 'suspended' && typeof this.ctx.resume === 'function')
-                            await this.ctx.resume();
-                        return !this.ctx.state || this.ctx.state === 'running';
+                        if (!this.ctx) {
+                            const created = this.createContext();
+                            if (!created)
+                                return false;
+                            this.setup(created);
+                        }
+                        context = this.ctx;
+                        if ((context.state === 'suspended' || context.state === 'interrupted') && typeof context.resume === 'function')
+                            await context.resume();
+                        // An outstanding resume may complete after the game has disposed this context.
+                        if (this.ctx !== context)
+                            return false;
+                        const ready = !context.state || context.state === 'running';
+                        // Failed recovery must leave the game on its elapsed-time fallback, not a
+                        // frozen AudioContext clock which would immediately trigger another pause.
+                        if (!ready)
+                            this.dispose();
+                        return ready;
                     }
                     catch {
-                        try {
-                            this.ctx?.close?.();
-                        }
-                        catch { }
-                        this.ctx = null;
+                        if (!context || this.ctx === context)
+                            this.dispose();
                         return false;
                     }
                 }
@@ -221,9 +236,10 @@ System.register(["./rhythm.js?v=4592cf42476a57b5", "../platform/Platform.js?v=45
                 }
                 // The transport is monotonic. Tutorial repeats the first eight full groove bars,
                 // not the arrangement outro, so there is no end fade or clock reset in a lesson.
-                start(level = 1, time = 0, tutorial = false) {
+                start(level = 1, time = 0, tutorial = false, combat = false) {
                     this.stop();
                     this.tutorialLoop = tutorial;
+                    this.combatTail = !!combat && !tutorial;
                     this.track = music_js_1.getTrack(level);
                     if (!this.ctx)
                         return;
@@ -239,8 +255,24 @@ System.register(["./rhythm.js?v=4592cf42476a57b5", "../platform/Platform.js?v=45
                     this.schedule();
                     this.timer = setInterval(() => this.schedule(), 25);
                 }
-                musicLevel(time) { if (this.tutorialLoop)
-                    return this.musicVolume; const a = arrangement_js_1.arrangementFor(this.track.level, this.track.bpm); return this.musicVolume * Math.max(0, Math.min(1, (a.duration - time) / 5)); }
+                arrangement() { if (this.arrangementTrack !== this.track) {
+                    this.arrangementTrack = this.track;
+                    this.cachedArrangement = arrangement_js_1.arrangementFor(this.track.level, this.track.bpm);
+                } return this.cachedArrangement; }
+                // The song itself keeps its original length. Combat may still have a few
+                // surviving enemies / outgoing effects, so only combat gets a finite coda.
+                // finish() starts the result fade immediately; the 14 s cap is a fallback.
+                playbackEnd() { return this.arrangement().duration + (this.combatTail ? 14 : 0); }
+                musicLevel(time) {
+                    if (this.tutorialLoop)
+                        return this.musicVolume;
+                    const a = this.arrangement();
+                    if (!this.combatTail)
+                        return this.musicVolume * Math.max(0, Math.min(1, (a.duration - time) / 5));
+                    if (time < a.duration)
+                        return this.musicVolume * (.4 + .6 * Math.max(0, Math.min(1, (a.duration - time) / 5)));
+                    return this.musicVolume * .4 * Math.max(0, Math.min(1, (this.playbackEnd() - time) / .75));
+                }
                 applyMusicEnvelope(fadeIn = false) {
                     if (!this.ctx || !this.music)
                         return;
@@ -252,14 +284,23 @@ System.register(["./rhythm.js?v=4592cf42476a57b5", "../platform/Platform.js?v=45
                             g.linearRampToValueAtTime(this.musicVolume, now + .18);
                         return;
                     }
-                    const now = this.ctx.currentTime, a = arrangement_js_1.arrangementFor(this.track.level, this.track.bpm), time = Math.max(0, now - this.origin), end = this.origin + a.duration, start = end - 5, g = this.music.gain;
+                    const now = this.ctx.currentTime, a = this.arrangement(), time = Math.max(0, now - this.origin), end = this.origin + this.playbackEnd(), start = this.origin + a.duration - 5, g = this.music.gain;
                     g.cancelScheduledValues(now);
                     g.setValueAtTime(fadeIn ? 0 : this.musicLevel(time), now);
                     if (fadeIn)
                         g.linearRampToValueAtTime(this.musicLevel(time + .18), now + .18);
-                    if (start > now + .18)
+                    const after = now + (fadeIn ? .18 : 0);
+                    if (start > after)
                         g.setValueAtTime(this.musicVolume, start);
-                    g.linearRampToValueAtTime(0, Math.max(now + .19, end));
+                    if (this.combatTail) {
+                        const coda = this.origin + a.duration;
+                        if (coda > after)
+                            g.linearRampToValueAtTime(this.musicVolume * .4, coda);
+                        if (end - .75 > after)
+                            g.setValueAtTime(this.musicVolume * .4, end - .75);
+                    }
+                    if (end > after)
+                        g.linearRampToValueAtTime(0, end);
                 }
                 finish() {
                     if (!this.ctx || !this.running)
@@ -306,9 +347,12 @@ System.register(["./rhythm.js?v=4592cf42476a57b5", "../platform/Platform.js?v=45
                     this.timer = null;
                     const now = this.ctx?.currentTime || 0, old = this.music;
                     if (old) {
-                        old.gain.cancelScheduledValues(now);
-                        old.gain.setValueAtTime(old.gain.value, now);
-                        old.gain.linearRampToValueAtTime(0, now + .18);
+                        try {
+                            old.gain.cancelScheduledValues(now);
+                            old.gain.setValueAtTime(old.gain.value, now);
+                            old.gain.linearRampToValueAtTime(0, now + .18);
+                        }
+                        catch { }
                         const timer = setTimeout(() => { try {
                             old.disconnect();
                         }
@@ -344,34 +388,46 @@ System.register(["./rhythm.js?v=4592cf42476a57b5", "../platform/Platform.js?v=45
                         }
                         catch { }
                     try {
-                        this.ctx?.close?.();
+                        if (this.ctx?.state !== 'closed') {
+                            const closing = this.ctx?.close?.();
+                            if (closing && typeof closing.catch === 'function')
+                                closing.catch(() => { });
+                        }
                     }
                     catch { }
                     this.ctx = null;
+                    this.music = null;
+                    this.effects = null;
+                    this.master = null;
+                    this.limiter = null;
+                    this.noise = null;
                 }
                 position(fallback = 0) { return this.ctx && this.running ? Math.max(0, this.ctx.currentTime - this.origin) : fallback; }
                 phase(fallback = 0) { const beat = this.track.beat; return this.ctx && this.running ? ((this.ctx.currentTime - this.origin) % beat + beat) % beat : fallback; }
                 schedule() {
                     if (!this.running || !this.ctx)
                         return;
-                    const t = this.track, n = t.bars * 16, loopSteps = Math.min(n, 8 * 16);
+                    const t = this.track, a = this.arrangement(), n = t.bars * 16, loopSteps = Math.min(n, 8 * 16), end = this.playbackEnd();
                     // Skip stale events after an interrupted frame. Do not rebase origin or emit a catch-up burst.
                     if (this.ctx.currentTime - this.origin - music_js_1.stepTime(t, this.step) > 1)
                         this.step = Math.max(this.step, Math.floor((this.ctx.currentTime - this.origin) / (t.beat / 4)));
                     while (this.origin + music_js_1.stepTime(t, this.step) < this.ctx.currentTime + .14) {
-                        const at = this.origin + music_js_1.stepTime(t, this.step), patternStep = this.tutorialLoop ? this.step % loopSteps : this.step;
+                        const elapsed = music_js_1.stepTime(t, this.step), at = this.origin + elapsed, coda = this.combatTail && elapsed >= a.duration;
+                        // Reuse the last full accompaniment bar before the final resolving chord.
+                        // Melody and ornaments are omitted below; there is no second song or reset.
+                        const patternStep = this.tutorialLoop ? this.step % loopSteps : coda ? Math.max(0, n - 32) + (this.step - n) % 16 : this.step;
                         if ((!this.endingAt || at < this.endingAt) && at >= this.ctx.currentTime - .012) {
-                            const when = Math.max(at, this.ctx.currentTime), elapsed = music_js_1.stepTime(t, patternStep), a = arrangement_js_1.arrangementFor(t.level, t.bpm), section = this.tutorialLoop ? 'groove' : arrangement_js_1.sectionAt(elapsed, a), sub = patternStep % 16;
-                            if (!this.tutorialLoop && elapsed >= a.duration) {
+                            const when = Math.max(at, this.ctx.currentTime), patternElapsed = music_js_1.stepTime(t, patternStep), section = this.tutorialLoop ? 'groove' : coda ? 'outro' : arrangement_js_1.sectionAt(elapsed, a), sub = patternStep % 16;
+                            if (!this.tutorialLoop && elapsed >= end) {
                                 this.step++;
                                 continue;
                             }
-                            const beforeDrop = !this.tutorialLoop && elapsed >= a.climaxStart - t.beat && elapsed < a.climaxStart;
+                            const beforeDrop = !this.tutorialLoop && !coda && elapsed >= a.climaxStart - t.beat && elapsed < a.climaxStart;
                             const events = t.byStep[patternStep % n] || [];
                             for (const e of events) {
                                 if (beforeDrop && e.instrument !== 'snare' && e.instrument !== 'hat')
                                     continue;
-                                if (section === 'groove' && elapsed < 8 * t.beat && e.role === 'lead')
+                                if (section === 'groove' && patternElapsed < 8 * t.beat && e.role === 'lead')
                                     continue;
                                 if (section === 'outro' && (e.role === 'lead' || e.instrument === 'tamb'))
                                     continue;
@@ -383,7 +439,7 @@ System.register(["./rhythm.js?v=4592cf42476a57b5", "../platform/Platform.js?v=45
                                 const beat = Math.floor(patternStep / 4);
                                 if (sub === 0)
                                     this.note({ instrument: 'kick', midi: 0, duration: .15, velocity: .32 }, when);
-                                if (!this.tutorialLoop && beat % 4 === 2 && rhythm_js_1.cueAt(t.level, beat + 2)) {
+                                if (!this.tutorialLoop && !coda && beat % 4 === 2 && rhythm_js_1.cueAt(t.level, beat + 2)) {
                                     this.note({ instrument: 'tom', midi: 53, duration: .09, velocity: .65 }, when);
                                     this.note({ instrument: 'tom', midi: 48, duration: .09, velocity: .65 }, when + t.beat);
                                 }

@@ -1,9 +1,9 @@
 /** Allocation/retention stress using the real game and whichever Cocos runtime hosts this page. */
 export async function runViewStress(cc, options = {}) {
-    const { BattleView } = await System.import('./scripts/view/BattleView.js?v=4592cf42476a57b5');
-    const { SupportPreviewView } = await System.import('./scripts/view/SupportPreviewView.js?v=4592cf42476a57b5');
-    const { Battle } = await System.import('./scripts/core/engine.js?v=4592cf42476a57b5');
-    const { getTrack } = await System.import('./scripts/core/music.js?v=4592cf42476a57b5');
+    const { BattleView } = await System.import('./scripts/view/BattleView.js?v=56ad489c6a4bccde');
+    const { SupportPreviewView } = await System.import('./scripts/view/SupportPreviewView.js?v=56ad489c6a4bccde');
+    const { Battle } = await System.import('./scripts/core/engine.js?v=56ad489c6a4bccde');
+    const { getTrack } = await System.import('./scripts/core/music.js?v=56ad489c6a4bccde');
     const scene = cc.director.getScene();
     if (!scene) throw new Error('A running Cocos scene is required');
     const canvas = scene.getChildByName('Canvas') || scene;

@@ -1,4 +1,4 @@
-System.register(["cc", "../ui/LabelClarity.js?v=4592cf42476a57b5"], function (exports_1, context_1) {
+System.register(["cc", "../ui/LabelClarity.js?v=56ad489c6a4bccde"], function (exports_1, context_1) {
     "use strict";
     var cc_1, LabelClarity_js_1, DRAW_LIMITS, TAU, RAD_TO_DEG, clamp01, RadialPaint, NativeDraw2D;
     var __moduleName = context_1 && context_1.id;
@@ -50,6 +50,7 @@ System.register(["cc", "../ui/LabelClarity.js?v=4592cf42476a57b5"], function (ex
                     this.droppedCommands = 0;
                     this.colorCache = new Map();
                     this.frames = new Map();
+                    this.additiveSpriteMaterial = null;
                     this.width = 420;
                     this.height = 840;
                 }
@@ -112,6 +113,8 @@ System.register(["cc", "../ui/LabelClarity.js?v=4592cf42476a57b5"], function (ex
                     this.spritesPool = [];
                     this.textPool = [];
                     this.frames.clear();
+                    this.additiveSpriteMaterial?.destroy();
+                    this.additiveSpriteMaterial = null;
                 }
                 place(node) {
                     node.active = true;
@@ -127,14 +130,39 @@ System.register(["cc", "../ui/LabelClarity.js?v=4592cf42476a57b5"], function (ex
                     return node;
                 }
                 blend(target, additive) {
-                    // A separate material instance keeps additive trails independent of normal UI.
+                    // Normal sprites retain Cocos' shared UI material, so identical textures
+                    // can batch. One shared additive material is sufficient for hit overlays.
+                    // Giving every pooled sprite its own instance broke that batching in C3.
+                    if (target instanceof cc_1.Sprite) {
+                        if (!additive) {
+                            if (target.customMaterial)
+                                target.customMaterial = null;
+                            return;
+                        }
+                        if (!this.additiveSpriteMaterial) {
+                            const original = target.getSharedMaterial(0);
+                            if (!original)
+                                return;
+                            this.additiveSpriteMaterial = new cc_1.Material();
+                            this.additiveSpriteMaterial.copy(original);
+                            this.additiveSpriteMaterial.overridePipelineStates({ blendState: { targets: [{
+                                            blend: true, blendSrc: cc_1.gfx.BlendFactor.SRC_ALPHA, blendDst: cc_1.gfx.BlendFactor.ONE,
+                                            blendSrcAlpha: cc_1.gfx.BlendFactor.ONE, blendDstAlpha: cc_1.gfx.BlendFactor.ONE_MINUS_SRC_ALPHA,
+                                        }] } });
+                        }
+                        if (target.customMaterial !== this.additiveSpriteMaterial)
+                            target.customMaterial = this.additiveSpriteMaterial;
+                        return;
+                    }
+                    // Graphics has a local-space model material; keep its premultiplied
+                    // alpha convention when switching between normal and additive paths.
                     const material = target.getMaterialInstance(0);
                     if (material)
                         material.overridePipelineStates({ blendState: { targets: [{
                                         blend: true,
                                         // Builtin Graphics premultiplies RGB by alpha in its fragment shader.
                                         // Sprite textures keep straight alpha and need SRC_ALPHA blending.
-                                        blendSrc: target instanceof cc_1.Graphics ? cc_1.gfx.BlendFactor.ONE : cc_1.gfx.BlendFactor.SRC_ALPHA,
+                                        blendSrc: cc_1.gfx.BlendFactor.ONE,
                                         blendDst: additive ? cc_1.gfx.BlendFactor.ONE : cc_1.gfx.BlendFactor.ONE_MINUS_SRC_ALPHA,
                                         blendSrcAlpha: cc_1.gfx.BlendFactor.ONE,
                                         blendDstAlpha: cc_1.gfx.BlendFactor.ONE_MINUS_SRC_ALPHA,
@@ -389,7 +417,9 @@ System.register(["cc", "../ui/LabelClarity.js?v=4592cf42476a57b5"], function (ex
                         sprite.type = cc_1.Sprite.Type.SIMPLE;
                         sprite.sizeMode = cc_1.Sprite.SizeMode.CUSTOM;
                         sprite.trim = false;
-                        slot = { node, sprite, transform: node.getComponent(cc_1.UITransform), blend: '' };
+                        const transform = node.getComponent(cc_1.UITransform);
+                        transform.setContentSize(1, 1);
+                        slot = { node, sprite, transform, blend: '', alpha: -1, tint: new cc_1.Color(255, 255, 255, 255) };
                         this.spritesPool.push(slot);
                     }
                     const reactivated = !slot.node.active;
@@ -401,8 +431,15 @@ System.register(["cc", "../ui/LabelClarity.js?v=4592cf42476a57b5"], function (ex
                     const sx = Math.hypot(m[0], m[1]), sy = Math.hypot(m[2], m[3]);
                     slot.node.setPosition(p.x, -p.y, 0);
                     slot.node.angle = -Math.atan2(m[1], m[0]) * RAD_TO_DEG;
-                    slot.transform.setContentSize(Math.abs(width) * sx, Math.abs(height) * sy);
-                    slot.sprite.color = new cc_1.Color(255, 255, 255, Math.round(this.state.alpha * 255));
+                    // The quad's local size is constant; all authored sizing is a node
+                    // transform, avoiding a local-geometry rebuild for every enemy bob.
+                    slot.node.setScale(Math.abs(width) * sx, Math.abs(height) * sy, 1);
+                    const alpha = Math.round(this.state.alpha * 255);
+                    if (alpha !== slot.alpha) {
+                        slot.alpha = alpha;
+                        slot.tint.a = alpha;
+                        slot.sprite.color = slot.tint;
+                    }
                     if (reactivated || slot.blend !== this.state.composite) {
                         slot.blend = this.state.composite;
                         this.blend(slot.sprite, slot.blend === 'lighter');
@@ -422,17 +459,28 @@ System.register(["cc", "../ui/LabelClarity.js?v=4592cf42476a57b5"], function (ex
                         label.useSystemFont = true;
                         label.fontFamily = 'sans-serif';
                         label.overflow = cc_1.Label.Overflow.NONE;
-                        slot = { node, label, transform: node.getComponent(cc_1.UITransform) };
+                        slot = { node, label, transform: node.getComponent(cc_1.UITransform), opacity: node.addComponent(cc_1.UIOpacity), font: '', size: 14, align: '' };
                         this.textPool.push(slot);
                     }
                     this.textIndex++;
                     this.place(slot.node);
-                    const m = this.state.matrix, p = this.point(x, y), size = Number(this.state.font.match(/([\d.]+)px/)?.[1]) || 14;
+                    const m = this.state.matrix, p = this.point(x, y);
                     const label = slot.label;
                     label.string = String(text);
-                    label.isBold = /bold|[6-9]00/.test(this.state.font);
-                    label.color = this.color(this.state.fill);
-                    slot.transform.setAnchorPoint(this.state.textAlign === 'center' ? .5 : this.state.textAlign === 'right' ? 1 : 0, .5);
+                    if (slot.font !== this.state.font) {
+                        slot.font = this.state.font;
+                        slot.size = Number(this.state.font.match(/([\d.]+)px/)?.[1]) || 14;
+                        label.isBold = /bold|[6-9]00/.test(this.state.font);
+                    }
+                    const size = slot.size;
+                    // Keep authored glyph color independent from the animated fade. Opacity
+                    // updates the retained quad's alpha without changing font configuration.
+                    label.color = this.color(this.state.fill, 1);
+                    slot.opacity.opacity = Math.round(this.state.alpha * 255);
+                    if (slot.align !== this.state.textAlign) {
+                        slot.align = this.state.textAlign;
+                        slot.transform.setAnchorPoint(this.state.textAlign === 'center' ? .5 : this.state.textAlign === 'right' ? 1 : 0, .5);
+                    }
                     slot.node.setPosition(p.x, -p.y + size * .32, 0);
                     slot.node.angle = -Math.atan2(m[1], m[0]) * RAD_TO_DEG;
                     LabelClarity_js_1.configureLabelClarity(label, { fontSize: size, lineHeight: size * 1.25,
