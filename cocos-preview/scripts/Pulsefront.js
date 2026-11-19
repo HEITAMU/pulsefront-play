@@ -129,6 +129,9 @@ System.register(["cc", "./core/engine.js?v=81a7a01cc2f828cc", "./core/music.js?v
                     this.buildBanner();
                     this.refreshHome();
                     this.hud.active = false;
+                    // Audio unlock is initiated on a real TOUCH_START, before async loading.
+                    // Do not unlock from a timer or visibility callback: iOS rejects those.
+                    cc_1.input.on(cc_1.Input.EventType.TOUCH_START, this.onAudioGesture, this);
                     cc_1.input.on(cc_1.Input.EventType.TOUCH_END, this.onTouchEnd, this);
                     cc_1.input.on(cc_1.Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
                     cc_1.input.on(cc_1.Input.EventType.KEY_DOWN, this.onKeyDown, this);
@@ -321,6 +324,19 @@ System.register(["cc", "./core/engine.js?v=81a7a01cc2f828cc", "./core/music.js?v
                     this.showPause();
                 else
                     this.closePanel(); }
+                onAudioGesture() {
+                    if (this.destroyed || !this.save?.settings.sound)
+                        return;
+                    const context = this.audio.ctx;
+                    if (context && (!context.state || context.state === 'running'))
+                        return;
+                    // Retry blocked/interrupted audio at the next user gesture.
+                    // The simulation remains on its elapsed-time clock until audio is running.
+                    if (this.mode === 'playing' && this.battle)
+                        void this.ensureBattleAudio();
+                    else
+                        void this.audio.unlock();
+                }
                 async startCampaign() {
                     const ticket = ++this.intent;
                     await this.audio.unlock();
@@ -337,11 +353,14 @@ System.register(["cc", "./core/engine.js?v=81a7a01cc2f828cc", "./core/music.js?v
                     this.resetInput();
                     this.audio.stop();
                     this.previewLevel = null;
+                    // Begin WebAudio resume synchronously inside the selection gesture,
+                    // not after artReady (which loses Safari's transient activation).
+                    const audioAttempt = this.audio.unlock();
                     try {
                         await this.artReady;
                         if (ticket !== this.intent || this.destroyed)
                             return;
-                        await this.audio.unlock();
+                        await audioAttempt;
                     }
                     catch {
                         if (ticket === this.intent && !this.destroyed) {
@@ -974,6 +993,7 @@ System.register(["cc", "./core/engine.js?v=81a7a01cc2f828cc", "./core/music.js?v
                     this.ads.dispose();
                     this.supportDemo?.destroy();
                     this.renderer?.destroy?.();
+                    cc_1.input.off(cc_1.Input.EventType.TOUCH_START, this.onAudioGesture, this);
                     cc_1.input.off(cc_1.Input.EventType.TOUCH_END, this.onTouchEnd, this);
                     cc_1.input.off(cc_1.Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
                     cc_1.input.off(cc_1.Input.EventType.KEY_DOWN, this.onKeyDown, this);
