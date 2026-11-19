@@ -1,4 +1,4 @@
-name: Cocos performance and audio check
+name: Cocos C5 UI preview
 on:
   push:
     branches: [cocos-runtime-check]
@@ -6,45 +6,31 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: cocos-performance-audio-check
+  group: cocos-c5-ui-preview
   cancel-in-progress: true
 jobs:
   browser:
     runs-on: ubuntu-24.04
     container: mcr.microsoft.com/playwright:v1.62.1-noble
-    timeout-minutes: 12
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Check out the published C3 baseline
-        uses: actions/checkout@v4
-        with:
-          ref: 9e04cc1ec8b0f19d76d40ae72511c765fe9e85bf
-          path: baseline-c3
-          persist-credentials: false
-      - name: Install browser test runtime
+      - name: Install browser preview runtime
         run: npm install --prefix /tmp/pulsefront-browser-check playwright@1.62.1
-      - name: Measure the C3 baseline without accepting its clock drift
-        continue-on-error: true
+      - name: Capture current menus and cannon with real canvas input
         env:
           NODE_PATH: /tmp/pulsefront-browser-check/node_modules
           LIBGL_ALWAYS_SOFTWARE: "1"
-          COCOS_PREVIEW_DIR: baseline-c3/cocos-preview
-          COCOS_QA_OUTPUT: browser-performance-audio-results/c3
-          COCOS_QA_ASSERT_SYNC: "0"
-        run: xvfb-run -a node tests/cocos-performance-audio-check.cjs
-      - name: Verify current full-stage audio and rendering work
-        env:
-          NODE_PATH: /tmp/pulsefront-browser-check/node_modules
-          LIBGL_ALWAYS_SOFTWARE: "1"
-          COCOS_PREVIEW_DIR: cocos-preview
-          COCOS_QA_OUTPUT: browser-performance-audio-results/current
-          COCOS_QA_ASSERT_SYNC: "1"
-        run: xvfb-run -a node tests/cocos-performance-audio-check.cjs
+          COCOS_QA_OUTPUT: browser-check-results/c5
+          REQUIRE_NAVIGATION_ARROWS: "0"
+          COCOS_QA_MENU_CAPTURE: "1"
+          COCOS_QA_VIDEO: "0"
+        run: xvfb-run -a node tests/cocos-retina-visual-check.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cocos-performance-audio
-          path: browser-performance-audio-results
+          name: cocos-c5-ui-preview
+          path: browser-check-results
           retention-days: 7

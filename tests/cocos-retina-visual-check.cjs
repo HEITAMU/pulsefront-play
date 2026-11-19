@@ -57,11 +57,11 @@ async function readMetrics() {
     const cc = window.cc, canvas = document.getElementById('GameCanvas'), rect = canvas.getBoundingClientRect();
     const walk = n => [n, ...n.children.flatMap(walk)], scene = cc.director.getScene();
     const nodes = walk(scene), home = nodes.find(n => n.name === 'Home' && n.activeInHierarchy);
-    const labels = nodes.filter(n => n.activeInHierarchy).map(n => n.getComponent(cc.Label)).filter(Boolean).slice(0, 45).map(l => {
+    const labels = nodes.filter(n => n.activeInHierarchy).map(n => n.getComponent(cc.Label)).filter(Boolean).map(l => {
       // These fields are read-only diagnostic observations of Cocos 3.8.8's TTF
       // assembler. Nothing in the engine or game's render state is changed.
       const data = l._assemblerData, frame = l._ttfSpriteFrame, world = l.node.worldScale;
-      return { text: l.string, fontSize: l.fontSize, actualFontSize: l.actualFontSize,
+      return { text: l.string, parent: l.node.parent?.name, horizontalAlign: l.horizontalAlign, verticalAlign: l.verticalAlign, fontSize: l.fontSize, actualFontSize: l.actualFontSize,
         lineHeight: l.lineHeight, fontFamily: l.fontFamily, worldScale: { x: world.x, y: world.y },
         ttfCanvas: data?.canvas ? { width: data.canvas.width, height: data.canvas.height } : null,
         texture: frame?.texture ? { width: frame.texture.width, height: frame.texture.height } : null };
@@ -77,7 +77,7 @@ async function readMetrics() {
         backingRatioX: canvas.width / rect.width, backingRatioY: canvas.height / rect.height },
       engineScreen: { devicePixelRatio: cc.screen?.devicePixelRatio, resolutionScale: cc.screen?.resolutionScale,
         windowSize: cc.screen?.windowSize, resolution: cc.screen?.resolution },
-      designResolution: cc.view.getDesignResolutionSize(), visibleSize: cc.view.getVisibleSize(), arrows, labels };
+      designResolution: cc.view.getDesignResolutionSize(), visibleSize: cc.view.getVisibleSize(), arrows, labels, arrowNodes: nodes.filter(n => /NavigationArrow|CannonDirectionArrows|CannonSwipeLeft|CannonSwipeRight/.test(n.name)).map(n => n.name) };
   });
 }
 async function capture(name, inputStart, inputEvent = 'press') {
@@ -86,7 +86,7 @@ async function capture(name, inputStart, inputEvent = 'press') {
   const completedAt = performance.now();
   const png = fs.readFileSync(path.join(output, name + '.png'));
   const pixels = { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
-  if (pixels.width !== viewport.width * dpr || pixels.height !== viewport.height * dpr) throw new Error('Screenshot was not captured at full DPR: ' + JSON.stringify(pixels));
+  if (pixels.width !== page.viewportSize().width * dpr || pixels.height !== page.viewportSize().height * dpr) throw new Error('Screenshot was not captured at full DPR: ' + JSON.stringify(pixels));
   const entry = { name, pixels, inputEvent: inputStart == null ? null : inputEvent,
     screenshotRequestedMsAfterInput: inputStart == null ? null : requestedAt - inputStart,
     screenshotCompletedMsAfterInput: inputStart == null ? null : completedAt - inputStart,
@@ -114,6 +114,28 @@ async function capture(name, inputStart, inputEvent = 'press') {
     const backing = home.metrics.canvas;
     if (home.metrics.devicePixelRatio !== dpr || backing.backingRatioX < minimumBackingRatio || backing.backingRatioY < minimumBackingRatio)
       throw new Error('Retina backing resolution is below target: ' + JSON.stringify(home.metrics));
+    if (process.env.COCOS_QA_MENU_CAPTURE === '1') {
+      await page.setViewportSize({ width: 360, height: 640 });
+      await page.waitForTimeout(400); await capture('home-compact-dpr3');
+      await page.setViewportSize(viewport); await page.waitForTimeout(400);
+      for (const entry of ['map', 'support', 'growth', 'hangar', 'music']) {
+        await clickNative(entry, 'Home');
+        await page.waitForFunction(() => !!window.pulsefront.snapshot().panel);
+        await page.waitForTimeout(200); await capture('menu-' + entry + '-dpr3');
+        if (entry === 'support') {
+          const first = await page.evaluate(() => {
+            const cc = window.cc, walk = n => [n, ...n.children.flatMap(walk)];
+            return walk(cc.director.getScene()).find(n => n.activeInHierarchy && n.name.startsWith('support-') && n.getComponent(cc.UITransform)?.width < 200)?.name;
+          });
+          if (!first) throw new Error('No visible support card');
+          await clickNative(first); await page.waitForTimeout(250); await capture('menu-support-detail-dpr3');
+          await clickNative('close-panel'); await page.waitForTimeout(250);
+        }
+        await clickNative('close-panel');
+        await page.waitForFunction(() => !window.pulsefront.snapshot().panel);
+        await page.waitForTimeout(150);
+      }
+    }
     evidence.startClick = await clickNative('start', 'Home');
     await page.waitForFunction(() => window.pulsefront.snapshot().mode === 'playing' || !!window.pulsefront.snapshot().panel);
     if ((await snapshot()).mode !== 'playing') { await capture('briefing-dpr3'); evidence.briefingClick = await clickNative('briefing-go'); }
@@ -134,7 +156,7 @@ async function capture(name, inputStart, inputEvent = 'press') {
     await page.waitForTimeout(260); const released = await capture('cannon-release-settled-dpr3');
     if (released.state.held) throw new Error('Mouse release left the cannon held');
     // The initial press is one tutorial tap. Two further real taps enter its
-    // horizontal sway step, whose hint should point left and right.
+    // horizontal sway step; capture its text instruction and the held state.
     for (let i = 0; i < 2; i++) { await page.mouse.click(fire.x, fire.y, { delay: 80 }); await page.waitForTimeout(120); }
     await page.waitForFunction(() => window.pulsefront.snapshot().lesson >= 1);
     await capture('tutorial-horizontal-hint-dpr3');

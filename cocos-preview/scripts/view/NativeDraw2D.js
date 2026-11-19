@@ -1,4 +1,4 @@
-System.register(["cc", "../ui/LabelClarity.js?v=56ad489c6a4bccde"], function (exports_1, context_1) {
+System.register(["cc", "../ui/LabelClarity.js?v=81a7a01cc2f828cc"], function (exports_1, context_1) {
     "use strict";
     var cc_1, LabelClarity_js_1, DRAW_LIMITS, TAU, RAD_TO_DEG, clamp01, RadialPaint, NativeDraw2D;
     var __moduleName = context_1 && context_1.id;
