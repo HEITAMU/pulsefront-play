@@ -115,9 +115,16 @@ async function capture(name, inputStart, inputEvent = 'press') {
     if (home.metrics.devicePixelRatio !== dpr || backing.backingRatioX < minimumBackingRatio || backing.backingRatioY < minimumBackingRatio)
       throw new Error('Retina backing resolution is below target: ' + JSON.stringify(home.metrics));
     if (process.env.COCOS_QA_MENU_CAPTURE === '1') {
-      await page.setViewportSize({ width: 360, height: 640 });
-      await page.waitForTimeout(400); await capture('home-compact-dpr3');
-      await page.setViewportSize(viewport); await page.waitForTimeout(400);
+      // Use an independent mobile context per phone size; keep the original
+      // page's viewport stable while inspecting its menus.
+      const mainPage = page;
+      page = await browser.newPage({ viewport: { width: 360, height: 640 }, deviceScaleFactor: dpr, isMobile: true, hasTouch: true });
+      page.on('pageerror', e => evidence.errors.push(e.stack || String(e)));
+      page.on('requestfailed', req => evidence.requests.push({ url: req.url(), failure: req.failure() }));
+      await page.goto('http://127.0.0.1:' + server.address().port + '/', { waitUntil: 'load' });
+      await page.waitForFunction(() => window.__smokeReady, undefined, { timeout: 45000 });
+      await page.waitForTimeout(300); await capture('home-compact-dpr3');
+      await page.close(); page = mainPage; await page.bringToFront(); await page.waitForTimeout(300);
       for (const entry of ['map', 'support', 'growth', 'hangar', 'music']) {
         await clickNative(entry, 'Home');
         await page.waitForFunction(() => !!window.pulsefront.snapshot().panel);
