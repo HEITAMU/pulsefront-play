@@ -1,4 +1,4 @@
-System.register(["cc", "./Primitives.js?v=56ad489c6a4bccde"], function (exports_1, context_1) {
+System.register(["cc", "./Primitives.js?v=81a7a01cc2f828cc"], function (exports_1, context_1) {
     "use strict";
     var cc_1, Primitives_js_1, DEG, CannonButton;
     var __moduleName = context_1 && context_1.id;
@@ -54,38 +54,6 @@ System.register(["cc", "./Primitives.js?v=56ad489c6a4bccde"], function (exports_
                     this.top = Primitives_js_1.text(this.face, 'PULSE ENGINE', -65, -39, 130, 16, { size: 7, color: '#8fb3bf', align: 'center', wrap: false });
                     this.main = Primitives_js_1.text(this.face, '开火', -70, -14, 140, 47, { size: 31, bold: true, color: '#d5f9e5', align: 'center', wrap: false });
                     this.bottom = Primitives_js_1.text(this.face, '点按 / 长按', -70, 33, 140, 19, { size: 9, color: '#93b2bc', align: 'center', wrap: false });
-                    this.direction = Primitives_js_1.nodeAt(this.node, 'CannonDirectionArrows', 0, 0).addComponent(cc_1.Graphics);
-                    this.direction.lineCap = cc_1.Graphics.LineCap.ROUND;
-                    this.direction.lineJoin = cc_1.Graphics.LineJoin.ROUND;
-                    // The arrow shape is fixed and rotated as a node as the player's aim changes.
-                    const d = this.direction;
-                    d.arc(0, 0, 82, -.3, .3, false);
-                    d.strokeColor = Primitives_js_1.color('#ffe6a6');
-                    d.lineWidth = 5;
-                    d.stroke();
-                    d.moveTo(109, 0);
-                    d.lineTo(95, 6);
-                    d.lineTo(95, -6);
-                    d.close();
-                    d.fillColor = Primitives_js_1.color('#fff0bc');
-                    d.fill();
-                    this.direction.node.active = false;
-                    const guide = (side) => {
-                        const node = Primitives_js_1.nodeAt(this.node, side < 0 ? 'CannonSwipeLeft' : 'CannonSwipeRight', side * 53, 0);
-                        const g = node.addComponent(cc_1.Graphics);
-                        g.lineCap = cc_1.Graphics.LineCap.ROUND;
-                        g.lineJoin = cc_1.Graphics.LineJoin.ROUND;
-                        g.strokeColor = Primitives_js_1.color('#e4fff1');
-                        g.lineWidth = 2.5;
-                        g.moveTo(-side * 6, 1);
-                        g.lineTo(0, -6);
-                        g.lineTo(-side * 6, -13);
-                        g.stroke();
-                        node.active = false;
-                        return node;
-                    };
-                    this.swipeLeft = guide(-1);
-                    this.swipeRight = guide(1);
                     this.hitArea = Primitives_js_1.nodeAt(this.node, 'FireTouchArea', -93, -93, 186, 168);
                 }
                 setHeld(value) {
@@ -228,19 +196,11 @@ System.register(["cc", "./Primitives.js?v=56ad489c6a4bccde"], function (exports_
                         if (pulse > .02)
                             ring(this.pulseLayer, 70 - pulse * 2, '#d6ffe8', 2, pulse * .5);
                     }
-                    this.direction.node.active = !!aim;
                     if (aim) {
-                        this.direction.node.angle = -Math.atan2(aim.y, aim.x) * DEG;
                         this.bottom.string = Math.abs(aim.x) < .35 ? '正前方加火力' : aim.x < 0 ? '左侧加火力' : '右侧加火力';
                     }
                     else
                         this.bottom.string = swipeGuide ? '按住 · 左右滑动' : this.held ? '全向开火' : '点按 / 长按';
-                    this.swipeLeft.active = this.swipeRight.active = swipeGuide;
-                    if (swipeGuide) {
-                        const offset = this.lite ? 0 : Math.sin(time * 5) * 3;
-                        this.swipeLeft.setPosition(-53 - offset, 0);
-                        this.swipeRight.setPosition(53 + offset, 0);
-                    }
                     this.main.color = Primitives_js_1.color(hot > .1 ? '#ffffff' : '#d7f5df');
                     this.top.color = Primitives_js_1.color(hot > .1 ? '#e0fff4' : '#8faeb8');
                     this.bottom.color = Primitives_js_1.color(aim ? '#ffe7af' : hot > .1 ? '#e0fff4' : '#93b2bc');

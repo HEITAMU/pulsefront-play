@@ -1,4 +1,4 @@
-System.register(["./rhythm.js?v=56ad489c6a4bccde", "./growth.js?v=56ad489c6a4bccde", "./support.js?v=56ad489c6a4bccde", "./arrangement.js?v=56ad489c6a4bccde"], function (exports_1, context_1) {
+System.register(["./rhythm.js?v=81a7a01cc2f828cc", "./growth.js?v=81a7a01cc2f828cc", "./support.js?v=81a7a01cc2f828cc", "./arrangement.js?v=81a7a01cc2f828cc"], function (exports_1, context_1) {
     "use strict";
     var rhythm_js_1, growth_js_1, support_js_1, arrangement_js_1, VERSION, MODULES, BPM, BEAT, CHAPTERS, Battle;
     var __moduleName = context_1 && context_1.id;

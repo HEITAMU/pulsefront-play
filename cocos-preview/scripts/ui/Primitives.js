@@ -1,4 +1,4 @@
-System.register(["cc", "./LabelClarity.js?v=56ad489c6a4bccde"], function (exports_1, context_1) {
+System.register(["cc", "./LabelClarity.js?v=81a7a01cc2f828cc"], function (exports_1, context_1) {
     "use strict";
     var cc_1, LabelClarity_js_1, palette, Panel;
     var __moduleName = context_1 && context_1.id;
@@ -78,29 +78,9 @@ System.register(["cc", "./LabelClarity.js?v=56ad489c6a4bccde"], function (export
         hg.stroke();
         rounded(hg, 1, 1, w - 2, h - 2, opts.radius ?? 10, '#cdffe73d', '#e6fff1', 2);
         hl.active = false;
-        // Navigation is an independent vector icon: font fallback, text length and
-        // Label's fit rules must never hide, shrink or move the arrow into the title.
-        const hasArrow = opts.arrow ?? /↗\s*$/.test(title), caption = hasArrow ? title.replace(/\s*↗\s*$/, '') : title;
         const foreground = opts.foreground ?? (opts.primary ? '#182e32' : palette.text);
-        const align = opts.align ?? (hasArrow && opts.primary ? 'left' : 'center');
-        const inset = align === 'left' ? (opts.primary ? 20 : 14) : 5;
-        const label = text(n, caption, inset, (h - (opts.size ?? 13) * 1.5) / 2, w - inset - (hasArrow ? 37 : inset), h * .8, { size: opts.size ?? 13, bold: !!opts.primary, color: foreground, align, wrap: false });
-        if (hasArrow) {
-            const size = opts.primary ? 18 : 11;
-            const arrow = nodeAt(n, 'NavigationArrow', w - (opts.primary ? 25 : 17), h / 2, size, size);
-            arrow.getComponent(cc_1.UITransform).setAnchorPoint(.5, .5);
-            const ag = arrow.addComponent(cc_1.Graphics), half = size / 2;
-            ag.lineCap = cc_1.Graphics.LineCap.ROUND;
-            ag.lineJoin = cc_1.Graphics.LineJoin.ROUND;
-            ag.strokeColor = color(opts.primary ? foreground : '#b6d3d4');
-            ag.lineWidth = opts.primary ? 2 : 1.6;
-            ag.moveTo(-half, -half);
-            ag.lineTo(half, half);
-            ag.moveTo(-half * .4, half);
-            ag.lineTo(half, half);
-            ag.lineTo(half, -half * .4);
-            ag.stroke();
-        }
+        const label = text(n, title, 6, 0, w - 12, h, { size: opts.size ?? 13, bold: !!opts.primary, color: foreground, align: 'center', wrap: false });
+        label.verticalAlign = cc_1.Label.VerticalAlign.CENTER;
         const opacity = n.addComponent(cc_1.UIOpacity);
         let enabled = opts.enabled !== false, down = false, origin = { x: 0, y: 0 };
         const reset = () => { down = false; hl.active = false; n.setScale(1, 1, 1); };

@@ -1,4 +1,4 @@
-System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v=56ad489c6a4bccde", "./core/audio.js?v=56ad489c6a4bccde", "./core/clock.js?v=56ad489c6a4bccde", "./core/tutorial.js?v=56ad489c6a4bccde", "./core/sway.js?v=56ad489c6a4bccde", "./core/campaign.js?v=56ad489c6a4bccde", "./core/economy.js?v=56ad489c6a4bccde", "./core/growth.js?v=56ad489c6a4bccde", "./core/support.js?v=56ad489c6a4bccde", "./platform/Platform.js?v=56ad489c6a4bccde", "./view/BattleView.js?v=56ad489c6a4bccde", "./view/SupportPreviewView.js?v=56ad489c6a4bccde", "./ui/Primitives.js?v=56ad489c6a4bccde", "./ui/CannonButton.js?v=56ad489c6a4bccde"], function (exports_1, context_1) {
+System.register(["cc", "./core/engine.js?v=81a7a01cc2f828cc", "./core/music.js?v=81a7a01cc2f828cc", "./core/audio.js?v=81a7a01cc2f828cc", "./core/clock.js?v=81a7a01cc2f828cc", "./core/tutorial.js?v=81a7a01cc2f828cc", "./core/sway.js?v=81a7a01cc2f828cc", "./core/campaign.js?v=81a7a01cc2f828cc", "./core/economy.js?v=81a7a01cc2f828cc", "./core/growth.js?v=81a7a01cc2f828cc", "./core/support.js?v=81a7a01cc2f828cc", "./platform/Platform.js?v=81a7a01cc2f828cc", "./view/BattleView.js?v=81a7a01cc2f828cc", "./view/SupportPreviewView.js?v=81a7a01cc2f828cc", "./ui/Primitives.js?v=81a7a01cc2f828cc", "./ui/CannonButton.js?v=81a7a01cc2f828cc"], function (exports_1, context_1) {
     "use strict";
     var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -137,7 +137,7 @@ System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v
                     cc_1.view.on('canvas-resize', this.onResize, this);
                     // Read-only diagnostics. No currency, progression, or input cheats in the shipped game.
                     globalThis.pulsefront = Object.freeze({
-                        version: engine_js_1.VERSION + '-cocos.4', engine: 'Cocos Creator 3.8.8',
+                        version: engine_js_1.VERSION + '-cocos.5', engine: 'Cocos Creator 3.8.8',
                         snapshot: () => ({ mode: this.mode, panel: this.panel?.root.name ?? null, ...this.battle?.snapshot(), lesson: this.lesson?.stage ?? null,
                             held: this.pressed, unlocked: this.save.unlocked, coins: this.save.economy.coins, completed: Object.keys(this.save.stars).length,
                             storageAvailable: Platform_js_1.storageAvailable, duration: this.battle?.c.duration ?? null, beatDuration: this.battle?.beatDuration ?? null,
@@ -220,31 +220,27 @@ System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v
                     const w = this.w, h = this.h, pad = 24, inner = w - pad * 2, compact = h < 760;
                     const heroTop = Math.max(100, this.safeTop + 90), dockHeight = compact ? 280 : 314, dockY = h - Math.max(22, this.safeBottom + 10) - dockHeight;
                     Primitives_js_1.text(this.home, 'RHYTHM BEYOND THE VOID', 28, heroTop + 25, 270, 20, { size: 7, color: '#8299a5', wrap: false });
-                    Primitives_js_1.text(this.home, '脉冲', 28, heroTop + 56, 280, 89, { size: compact ? 61 : 72, bold: true, color: '#d5e0df', lineHeight: 80, wrap: false });
-                    Primitives_js_1.text(this.home, '防线', 28, heroTop + 134, 235, 89, { size: compact ? 61 : 72, bold: true, color: '#d3dfdf', lineHeight: 80, wrap: false });
-                    Primitives_js_1.text(this.home, '.', compact ? 159 : 181, heroTop + 136, 38, 89, { size: compact ? 61 : 72, bold: true, color: '#d2bf97', lineHeight: 80, wrap: false });
                     Primitives_js_1.text(this.home, '随节拍，点燃星海。', 30, heroTop + 230, 270, 25, { size: 11, color: '#acbec5', wrap: false });
                     const wallet = Primitives_js_1.card(this.home, 'Wallet', w - 122, heroTop - 18, 98, 32, '#1b2c35b8', '#b5c9d128', 16);
                     this.labels.wallet = Primitives_js_1.text(wallet, '✧  0', 6, 6, 86, 24, { size: 11, color: '#cedcce', align: 'center', wrap: false });
                     const campaignH = compact ? 110 : 124, campaign = Primitives_js_1.card(this.home, 'CampaignCard', pad, dockY, inner, campaignH, '#21343fe8', '#bfd4d43b', 18);
-                    const start = Primitives_js_1.button(campaign, 'start', '开始出击', 15, 15, inner - 30, compact ? 48 : 56, () => this.startCampaign(), { primary: true, size: 16, arrow: true });
+                    const start = Primitives_js_1.button(campaign, 'start', '开始出击', 15, 15, inner - 30, compact ? 48 : 56, () => this.startCampaign(), { primary: true, size: 16 });
                     this.labels.start = start.label;
-                    const map = Primitives_js_1.button(campaign, 'map', '星域地图', 15, compact ? 69 : 77, inner - 30, 32, () => { this.mapChapter = Math.floor((this.save.unlocked - 1) / 10); this.showMap(); }, { fill: '#21343f', size: 12, align: 'left', arrow: true });
-                    Primitives_js_1.text(map.node, '选择已解锁关卡', inner - 30 - 158, 9, 124, 17, { size: 9, color: '#a6bdc7', align: 'right', wrap: false });
+                    Primitives_js_1.button(campaign, 'map', '星域地图 · 选择已解锁关卡', 15, compact ? 69 : 77, inner - 30, 32, () => { this.mapChapter = Math.floor((this.save.unlocked - 1) / 10); this.showMap(); }, { fill: '#21343f', size: 11 });
                     const groupY = dockY + campaignH + 13, groupH = compact ? 103 : 117, group = Primitives_js_1.card(this.home, 'GrowthCard', pad, groupY, inner, groupH, '#1d2d3aeb', '#bacfd332', 18);
                     Primitives_js_1.text(group, '武 器 养 成', 15, 12, inner - 30, 18, { size: 9, color: '#93aab5', wrap: false });
                     const tileW = (inner - 40) / 2;
-                    const a = Primitives_js_1.button(group, 'support', '', 15, 35, tileW, compact ? 56 : 68, () => this.showSupport(), { fill: '#2b3e49', arrow: true });
-                    const b = Primitives_js_1.button(group, 'growth', '', 25 + tileW, 35, tileW, compact ? 56 : 68, () => this.showGrowth(), { fill: '#2b3e49', arrow: true });
+                    const a = Primitives_js_1.button(group, 'support', '', 15, 35, tileW, compact ? 56 : 68, () => this.showSupport(), { fill: '#2b3e49' });
+                    const b = Primitives_js_1.button(group, 'growth', '', 25 + tileW, 35, tileW, compact ? 56 : 68, () => this.showGrowth(), { fill: '#2b3e49' });
                     for (const [n, symbol, title, detail] of [[a.node, '✦', '副武器', '装配与飞行动作'], [b.node, '▥', '火力工坊', '永久升级']]) {
-                        Primitives_js_1.text(n, symbol, 10, 14, 28, 34, { size: 24, color: '#b8dfd1' });
-                        Primitives_js_1.text(n, title, 45, 13, tileW - 76, 22, { size: 12, bold: true, wrap: false });
-                        Primitives_js_1.text(n, detail, 45, 36, tileW - 76, 18, { size: 8, color: '#a5bac4', wrap: false });
+                        Primitives_js_1.text(n, symbol, 10, compact ? 1 : 4, tileW - 20, compact ? 22 : 26, { size: compact ? 20 : 24, lineHeight: compact ? 22 : 26, color: '#b8dfd1', align: 'center', wrap: false });
+                        Primitives_js_1.text(n, title, 10, compact ? 24 : 32, tileW - 20, 16, { size: 12, lineHeight: 16, bold: true, align: 'center', wrap: false });
+                        Primitives_js_1.text(n, detail, 10, compact ? 42 : 51, tileW - 20, 12, { size: 8, lineHeight: 12, color: '#a5bac4', align: 'center', wrap: false });
                     }
                     const utilityY = groupY + groupH + 13, utilityW = (inner - 10) / 2;
-                    Primitives_js_1.button(this.home, 'hangar', '◈   机库外观', pad, utilityY, utilityW, 45, () => this.showHangar(), { size: 11, fill: '#142531cf', radius: 12, align: 'left', arrow: true });
-                    Primitives_js_1.button(this.home, 'music', '♫   星际唱片机', pad + utilityW + 10, utilityY, utilityW, 45, () => this.showMusic(), { size: 11, fill: '#142531cf', radius: 12, align: 'left', arrow: true });
-                    Primitives_js_1.text(this.home, 'v1.8.2 · C4', 26, h - 16 - this.safeBottom, 140, 13, { size: 7, color: '#68808b', wrap: false });
+                    Primitives_js_1.button(this.home, 'hangar', '◈   机库外观', pad, utilityY, utilityW, 45, () => this.showHangar(), { size: 11, fill: '#142531cf', radius: 12 });
+                    Primitives_js_1.button(this.home, 'music', '♫   星际唱片机', pad + utilityW + 10, utilityY, utilityW, 45, () => this.showMusic(), { size: 11, fill: '#142531cf', radius: 12 });
+                    Primitives_js_1.text(this.home, 'v1.8.2 · C5', 26, h - 16 - this.safeBottom, 140, 13, { size: 7, color: '#68808b', wrap: false });
                     this.labels.loading = Primitives_js_1.text(this.home, this.assetsLoaded ? '' : '正在载入星域…', 26, heroTop + 274, w - 52, 25, { size: 10, color: '#95b6bb' });
                 }
                 buildTop() {
@@ -704,7 +700,7 @@ System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v
                     ];
                     items.forEach(([n, title, detail], i) => { const c = Primitives_js_1.card(p.body, 'Briefing' + n, 0, i * 128, w, 116, '#1c3040', '#7297a42a', 12); Primitives_js_1.text(c, n, 13, 15, 32, 32, { size: 20, color: '#a8dfc9', bold: true }); Primitives_js_1.text(c, title, 55, 15, w - 67, 30, { size: 14, bold: true }); Primitives_js_1.text(c, detail, 55, 49, w - 70, 60, { size: 11, color: '#a2bbc8' }); });
                     Primitives_js_1.text(p.body, '电脑：空格开火，按住空格配合方向键左右滑动。', 0, 386, w, 40, { size: 10, color: Primitives_js_1.palette.muted });
-                    Primitives_js_1.button(p.body, 'briefing-go', '出发     ↗', 0, 432, w, 52, () => { this.save.seen = true; this.persist(); this.launch(this.save.unlocked); }, { primary: true, size: 15 });
+                    Primitives_js_1.button(p.body, 'briefing-go', '出发', 0, 432, w, 52, () => { this.save.seen = true; this.persist(); this.launch(this.save.unlocked); }, { primary: true, size: 15 });
                     p.finish(494);
                 }
                 showPause() {
@@ -713,7 +709,7 @@ System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v
                     const p = this.showPanel('稍作休整。', 'FLIGHT PAUSED', undefined, () => this.showPause()), w = p.width;
                     Primitives_js_1.text(p.body, `第 ${this.battle.c.level} 关 · ${engine_js_1.CHAPTERS[this.battle.c.chapter][0]}\n当前战斗已经暂停。`, 0, 0, w, 63, { size: 13, color: Primitives_js_1.palette.muted });
                     Primitives_js_1.text(p.body, this.equippedText(), 0, 73, w, 44, { size: 13, color: '#bde9d7' });
-                    const choices = [['resume', '继续战斗    ↗', () => this.resume()], ['retry', '重新开始本关', () => this.launch(this.battle.c.level)], ['pause-settings', '声音与画面', () => this.showSettings()], ['pause-music', '唱片机 · 试听全部曲目', () => this.showMusic()], ['home', '返回主界面', () => this.goHome()]];
+                    const choices = [['resume', '继续战斗', () => this.resume()], ['retry', '重新开始本关', () => this.launch(this.battle.c.level)], ['pause-settings', '声音与画面', () => this.showSettings()], ['pause-music', '唱片机 · 试听全部曲目', () => this.showMusic()], ['home', '返回主界面', () => this.goHome()]];
                     choices.forEach(([id, name, run], i) => Primitives_js_1.button(p.body, id, name, 0, 124 + i * 58, w, 46, run, { primary: i === 0 }));
                     p.finish(414);
                 }
@@ -750,7 +746,7 @@ System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v
                         Primitives_js_1.text(b.node, stars ? '✦'.repeat(stars) : n > this.save.unlocked ? '未解锁' : campaign_js_1.campaignFor(n).name, 2, 44, cw - 4, 22, { size: 7, color: stars ? '#e3d596' : '#9ab0ba', align: 'center' });
                     }
                     Primitives_js_1.text(p.body, '每10关迎战星域首领，通关自动解锁下一关。\n连拍积累副炮火力，漏拍保留已攒成长。', 0, 321, w, 63, { size: 11, color: Primitives_js_1.palette.muted });
-                    Primitives_js_1.button(p.body, 'map-continue', `前往第 ${this.save.unlocked} 关   ↗`, 0, 399, w, 48, () => { this.save.seen = true; this.persist(); this.launch(this.save.unlocked); }, { primary: true });
+                    Primitives_js_1.button(p.body, 'map-continue', `前往第 ${this.save.unlocked} 关`, 0, 399, w, 48, () => { this.save.seen = true; this.persist(); this.launch(this.save.unlocked); }, { primary: true });
                     p.finish(460);
                 }
                 showGrowth() {
@@ -782,12 +778,12 @@ System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v
                     support_js_1.SUPPORTS.forEach((s, i) => {
                         const slot = this.save.support.equipped.indexOf(s.id), unlocked = this.save.unlocked >= s.level;
                         const b = Primitives_js_1.button(p.body, 'support-' + s.id, '', i % 2 * (sw + 10), 119 + Math.floor(i / 2) * 115, sw, 104, () => this.showSupportDetail(s.id), { selected: slot >= 0 });
-                        Primitives_js_1.text(b.node, '━', 12, 11, 50, 21, { size: 24, color: s.color });
-                        Primitives_js_1.text(b.node, s.name, 12, 42, sw - 24, 23, { size: 13, bold: true, wrap: false });
-                        Primitives_js_1.text(b.node, unlocked ? slot >= 0 ? '槽位 ' + (slot + 1) + ' · 使用中' : '已解锁 · 查看与搭配' : '第 ' + s.level + ' 关解锁', 12, 74, sw - 24, 20, { size: 8, color: Primitives_js_1.palette.muted });
+                        Primitives_js_1.text(b.node, '━', 12, 11, sw - 24, 21, { size: 24, color: s.color, align: 'center' });
+                        Primitives_js_1.text(b.node, s.name, 12, 42, sw - 24, 23, { size: 13, bold: true, align: 'center', wrap: false });
+                        Primitives_js_1.text(b.node, unlocked ? slot >= 0 ? '槽位 ' + (slot + 1) + ' · 使用中' : '已解锁 · 查看与搭配' : '第 ' + s.level + ' 关解锁', 12, 74, sw - 24, 20, { size: 8, color: Primitives_js_1.palette.muted, align: 'center' });
                     });
-                    Primitives_js_1.button(p.body, 'support-growth', '火力工坊 · 永久升级  ↗', 0, 476, w, 43, () => this.showGrowth());
-                    Primitives_js_1.button(p.body, 'support-challenges', '律动挑战 · ' + Object.values(this.save.support.challenges).filter(Boolean).length + '/3  ↗', 0, 531, w, 43, () => this.showChallenges());
+                    Primitives_js_1.button(p.body, 'support-growth', '火力工坊 · 永久升级', 0, 476, w, 43, () => this.showGrowth());
+                    Primitives_js_1.button(p.body, 'support-challenges', '律动挑战 · ' + Object.values(this.save.support.challenges).filter(Boolean).length + '/3', 0, 531, w, 43, () => this.showChallenges());
                     Primitives_js_1.text(p.body, '使用中积攒熟练度，解锁不同飞行动作。\n装配在下次出击生效。', 0, 590, w, 50, { size: 10, color: Primitives_js_1.palette.muted });
                     p.finish(646);
                 }
@@ -804,9 +800,10 @@ System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v
                             this.persist();
                             this.showSupportDetail(id);
                         } }, { enabled: available, selected });
-                        Primitives_js_1.text(b.node, m.name, 12, 8, w - 119, 24, { size: 13, bold: true });
-                        Primitives_js_1.text(b.node, m.text, 12, 35, w - 119, 22, { size: 9, color: Primitives_js_1.palette.muted });
-                        Primitives_js_1.text(b.node, available ? selected ? '使用中' : '切换' : Math.min(stats[m.metric], m.goal) + ' / ' + m.goal + '\n' + { groups: '三连触发', kills: '专属击破', climax: '高潮三连' }[m.metric], w - 101, 16, 87, 42, { size: 10, color: '#c5d9cf', align: 'right' });
+                        Primitives_js_1.text(b.node, m.name, 12, 5, w - 24, 19, { size: 13, lineHeight: 18, bold: true, align: 'center', wrap: false });
+                        Primitives_js_1.text(b.node, m.text, 12, 27, w - 24, 16, { size: 9, lineHeight: 14, color: Primitives_js_1.palette.muted, align: 'center', wrap: false });
+                        const status = available ? selected ? '使用中' : '切换' : { groups: '三连触发', kills: '专属击破', climax: '高潮三连' }[m.metric] + ' · ' + Math.min(stats[m.metric], m.goal) + ' / ' + m.goal;
+                        Primitives_js_1.text(b.node, status, 12, 47, w - 24, 16, { size: 9, lineHeight: 14, color: '#c5d9cf', align: 'center', wrap: false });
                     });
                     for (let slot = 0; slot < 2; slot++)
                         Primitives_js_1.button(p.body, 'equip-' + slot, (this.save.support.equipped[slot] === id ? '已装配到' : '装入') + '槽位 ' + (slot + 1), slot * (w + 10) / 2, 522, (w - 10) / 2, 44, () => { if (support_js_1.equipSupport(this.save.support, id, this.save.unlocked, slot)) {
@@ -824,7 +821,7 @@ System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v
                         Primitives_js_1.text(n, c.name, 13, 13, w - 26, 27, { size: 15, bold: true });
                         Primitives_js_1.text(n, c.text, 13, 47, w - 26, 43, { size: 11, color: Primitives_js_1.palette.muted });
                         Primitives_js_1.text(n, this.save.support.challenges[c.id] ? '已完成 · 120星屑已领取' : '首次完成 +120 星屑', 13, 91, w - 26, 20, { size: 10, color: '#e2d39f' });
-                        Primitives_js_1.button(n, 'challenge-' + c.id, this.save.unlocked < c.level ? '到达第' + c.level + '关开放' : '挑战第' + c.level + '关  ↗', 13, 118, w - 26, 32, () => this.launch(c.level), { enabled: this.save.unlocked >= c.level });
+                        Primitives_js_1.button(n, 'challenge-' + c.id, this.save.unlocked < c.level ? '到达第' + c.level + '关开放' : '挑战第' + c.level + '关', 13, 118, w - 26, 32, () => this.launch(c.level), { enabled: this.save.unlocked >= c.level });
                     });
                     p.finish(526);
                 }
@@ -889,10 +886,9 @@ System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v
                             if (this.panel === p && !this.destroyed)
                                 this.showMusic(genre);
                         }, { selected: active });
-                        Primitives_js_1.text(b.node, String(t.level).padStart(2, '0'), 11, 18, 32, 28, { size: 17, color: '#bbd8ce' });
-                        Primitives_js_1.text(b.node, t.name, 52, 9, w - 93, 25, { size: 13, bold: true, wrap: false });
-                        Primitives_js_1.text(b.node, t.bpm + ' BPM · ' + (t.swing > .1 ? '摇摆节拍' : '切分律动'), 52, 36, w - 93, 19, { size: 9, color: Primitives_js_1.palette.muted });
-                        Primitives_js_1.text(b.node, active ? 'Ⅱ' : '▶', w - 32, 18, 22, 25, { size: 16, color: '#bcead4' });
+                        Primitives_js_1.text(b.node, String(t.level).padStart(2, '0') + ' · ' + t.name, 12, 4, w - 24, 20, { size: 13, lineHeight: 18, bold: true, align: 'center', wrap: false });
+                        Primitives_js_1.text(b.node, t.bpm + ' BPM · ' + (t.swing > .1 ? '摇摆节拍' : '切分律动'), 12, 26, w - 24, 15, { size: 9, lineHeight: 13, color: Primitives_js_1.palette.muted, align: 'center', wrap: false });
+                        Primitives_js_1.text(b.node, active ? '暂停' : '试听', 12, 44, w - 24, 14, { size: 9, lineHeight: 12, color: '#bcead4', align: 'center', wrap: false });
                     });
                     Primitives_js_1.text(p.body, '点击试听，出击自动播放当前关卡曲目。', 0, 844, w, 35, { size: 10, color: Primitives_js_1.palette.muted });
                     p.finish(886);
@@ -916,7 +912,7 @@ System.register(["cc", "./core/engine.js?v=56ad489c6a4bccde", "./core/music.js?v
                     const rewardNames = this.activeRun.challengeRewards || [], unlock = r.win ? support_js_1.SUPPORTS.find((s) => s.level === r.level + 1) : null;
                     Primitives_js_1.text(p.body, notice || (unlock ? '已解锁 ' + unlock.name + '，前往副武器装配。' : rewardNames.length ? '挑战完成 · ' + rewardNames.join('、') + ' · +' + rewardNames.length * 120 + '星屑' : r.win ? `剩余护盾 ${r.hp}% · 副炮成长 ×${r.supportRank || 0}` : '对准来敌踩拍，波峰击破厚血怪物。'), 0, y, w, 47, { size: 11, align: 'center', color: Primitives_js_1.palette.muted });
                     y += 60;
-                    Primitives_js_1.button(p.body, 'result-next', r.win && !complete ? '下一关 · ' + String(r.level + 1).padStart(2, '0') + '   ↗' : '再战本关   ↗', 0, y, w, 51, () => this.launch(r.win && !complete ? r.level + 1 : r.level), { primary: true, size: 15 });
+                    Primitives_js_1.button(p.body, 'result-next', r.win && !complete ? '下一关 · ' + String(r.level + 1).padStart(2, '0') : '再战本关', 0, y, w, 51, () => this.launch(r.win && !complete ? r.level + 1 : r.level), { primary: true, size: 15 });
                     y += 64;
                     const revive = !r.win && !this.battle.revived && !this.battle.timedOut;
                     if (this.ads.available && (r.win && receipt && !receipt.bonus || revive)) {

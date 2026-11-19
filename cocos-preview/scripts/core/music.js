@@ -1,4 +1,4 @@
-System.register(["./arrangement.js?v=56ad489c6a4bccde"], function (exports_1, context_1) {
+System.register(["./arrangement.js?v=81a7a01cc2f828cc"], function (exports_1, context_1) {
     "use strict";
     var arrangement_js_1, random, STYLES, variants, tracks, frequency;
     var __moduleName = context_1 && context_1.id;
