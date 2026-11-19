@@ -44,33 +44,50 @@ System.register(["./rhythm.js?v=81a7a01cc2f828cc", "../platform/Platform.js?v=81
                 async unlock() {
                     let context = this.ctx;
                     try {
-                        // A closed context cannot resume. Release its voices/buses before replacing it.
                         if (context?.state === 'closed') {
                             this.dispose();
                             context = null;
                         }
                         if (!this.ctx) {
+                            // Creation must happen synchronously while the user is touching the game.
                             const created = this.createContext();
                             if (!created)
                                 return false;
                             this.setup(created);
                         }
                         context = this.ctx;
-                        if ((context.state === 'suspended' || context.state === 'interrupted') && typeof context.resume === 'function')
-                            await context.resume();
-                        // An outstanding resume may complete after the game has disposed this context.
-                        if (this.ctx !== context)
+                        if (!context)
                             return false;
-                        const ready = !context.state || context.state === 'running';
-                        // Failed recovery must leave the game on its elapsed-time fallback, not a
-                        // frozen AudioContext clock which would immediately trigger another pause.
-                        if (!ready)
-                            this.dispose();
-                        return ready;
+                        if (!context.state || context.state === 'running')
+                            return true;
+                        if (typeof context.resume !== 'function')
+                            return false;
+                        // iOS/WebKit and some WeChat hosts require a source to be started
+                        // inside the SAME user-activation task as resume().
+                        try {
+                            const silent = context.createBufferSource();
+                            silent.buffer = context.createBuffer(1, 1, context.sampleRate || 44100);
+                            silent.connect(this.master || context.destination);
+                            silent.onended = () => { try { silent.disconnect(); } catch { } };
+                            silent.start(0);
+                        }
+                        catch { }
+                        // Never await an unbounded resume(): it may remain pending until
+                        // another gesture, leaving the menu's continue button stuck.
+                        const pending = context.resume();
+                        if (pending && typeof pending.then === 'function') {
+                            await Promise.race([
+                                Promise.resolve(pending).catch(() => { }),
+                                new Promise(resolve => setTimeout(resolve, 1100))
+                            ]);
+                        }
+                        // A late completion from an older or disposed context must not
+                        // be mistaken for a successful unlock.
+                        return this.ctx === context && (!context.state || context.state === 'running');
                     }
                     catch {
-                        if (!context || this.ctx === context)
-                            this.dispose();
+                        // Keep a suspended/interrupted context for the NEXT real gesture.
+                        // Disposing it here made mobile audio recovery permanently brittle.
                         return false;
                     }
                 }
@@ -241,7 +258,7 @@ System.register(["./rhythm.js?v=81a7a01cc2f828cc", "../platform/Platform.js?v=81
                     this.tutorialLoop = tutorial;
                     this.combatTail = !!combat && !tutorial;
                     this.track = music_js_1.getTrack(level);
-                    if (!this.ctx)
+                    if (!this.ctx || (this.ctx.state && this.ctx.state !== 'running'))
                         return;
                     time = Math.max(0, Number(time) || 0);
                     this.music = this.ctx.createGain();
@@ -402,8 +419,8 @@ System.register(["./rhythm.js?v=81a7a01cc2f828cc", "../platform/Platform.js?v=81
                     this.limiter = null;
                     this.noise = null;
                 }
-                position(fallback = 0) { return this.ctx && this.running ? Math.max(0, this.ctx.currentTime - this.origin) : fallback; }
-                phase(fallback = 0) { const beat = this.track.beat; return this.ctx && this.running ? ((this.ctx.currentTime - this.origin) % beat + beat) % beat : fallback; }
+                position(fallback = 0) { return this.ctx && this.running && (!this.ctx.state || this.ctx.state === 'running') ? Math.max(0, this.ctx.currentTime - this.origin) : fallback; }
+                phase(fallback = 0) { const beat = this.track.beat; return this.ctx && this.running && (!this.ctx.state || this.ctx.state === 'running') ? ((this.ctx.currentTime - this.origin) % beat + beat) % beat : fallback; }
                 schedule() {
                     if (!this.running || !this.ctx)
                         return;
