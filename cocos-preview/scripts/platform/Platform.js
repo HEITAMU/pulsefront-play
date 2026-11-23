@@ -15,11 +15,25 @@ System.register([], function (exports_1, context_1) {
     function createAudioContext() {
         const host = getWeChat();
         if (host && typeof host.createWebAudioContext === 'function') {
-            return host.createWebAudioContext();
+            try {
+                const context = host.createWebAudioContext();
+                if (context)
+                    return context;
+            }
+            catch { }
         }
         const scope = globalThis;
         const AudioContextClass = scope.AudioContext || scope.webkitAudioContext;
-        return AudioContextClass ? new AudioContextClass({ latencyHint: 'interactive' }) : null;
+        if (!AudioContextClass)
+            return null;
+        try {
+            return new AudioContextClass({ latencyHint: 'interactive' });
+        }
+        catch {
+            // Older iOS WebKit contexts may reject constructor options.
+            try { return new AudioContextClass(); }
+            catch { return null; }
+        }
     }
     exports_1("createAudioContext", createAudioContext);
     /** Optionally use Cocos sys.localStorage; tests can inject an in-memory adapter. */
@@ -72,7 +86,7 @@ System.register([], function (exports_1, context_1) {
             exports_1("SAVE_KEY", SAVE_KEY = 'pulsefront-save-v1');
             exports_1("WECHAT_APP_ID", WECHAT_APP_ID = 'wx43da24c6ac1e5a12');
             // Copy the approved rewarded-video placement ID here before publishing ads.
-            exports_1("REWARDED_AD_UNIT_ID", REWARDED_AD_UNIT_ID = '');
+            exports_1("REWARDED_AD_UNIT_ID", REWARDED_AD_UNIT_ID = 'adunit-34f3a0d585044563');
             storageAdapter = null;
             exports_1("storageAvailable", storageAvailable = true);
             /** Rewards require an explicit isEnded === true callback from WeChat. */
@@ -90,8 +104,13 @@ System.register([], function (exports_1, context_1) {
                 get available() {
                     return this.configured && !this.pending;
                 }
+                // This is the confirmed "通关奖励翻倍" ad slot. Failure revival
+                // must wait for its own ad slot instead of silently sharing this ID.
+                availableFor(placement) {
+                    return placement === 'clear_double' && this.available;
+                }
                 async reward(_placement = '') {
-                    if (!this.available)
+                    if (!this.availableFor(_placement))
                         return { earned: false, status: this.pending ? 'busy' : 'not-configured' };
                     this.pending = true;
                     try {
