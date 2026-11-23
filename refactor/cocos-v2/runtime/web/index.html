@@ -1,1 +1,28 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>脉冲防线 · 2.0</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#060b12}#GameDiv{width:100%;height:100%;}#Cocos3dGameContainer{width:100%;height:100%;}#GameCanvas{display:block;width:100%;height:100%;}#status{position:fixed;left:16px;top:env(safe-area-inset-top,16px);right:16px;z-index:99;font:14px/1.55 system-ui,-apple-system,sans-serif;color:#f3d6d1;background:#18202bf5;border:1px solid #65494b;border-radius:14px;padding:18px;max-height:85vh;overflow:auto;box-sizing:border-box}#status[hidden]{display:none}#status strong{font-size:18px;color:#fff}#status p{margin:10px 0;overflow-wrap:anywhere}#status summary{cursor:pointer;color:#cbd9e1;padding:8px 0}#status pre{font:11px/1.5 monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#07111a;padding:12px;border-radius:8px;user-select:text}#status button{background:#304d5a;color:#ecf6f4;border:1px solid #557782;border-radius:8px;padding:9px 16px;font:inherit;margin-top:12px;cursor:pointer}</style><script src="./system.js?v=v2r1"></script><script type="systemjs-importmap">{"imports":{"cc":"./engine/cc.js?v=v2r1"}}</script></head><body><div id="GameDiv"><div id="Cocos3dGameContainer"><canvas id="GameCanvas" tabindex="0"></canvas></div></div><div id="status">正在连接脉冲引擎…</div><script type="module" src="./boot.js?v=v2r1"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#04161c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>脉冲防线 · 2.1</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#04161c}body{position:fixed;inset:0;-webkit-user-select:none;user-select:none}
+#GameDiv,#Cocos3dGameContainer{position:absolute;inset:0;width:100%!important;height:100%!important;margin:0!important;padding:0!important;overflow:hidden}#GameCanvas{display:block;touch-action:none;outline:none}
+#safe-area-probe{position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);width:0;height:0}
+#status{position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;padding:28px;background:#04161c url('./art/deep-space.png') center/cover;font:16px/1.55 system-ui,-apple-system,sans-serif;color:#e6f3e6}#status[hidden]{display:none}
+.boot-card{width:min(352px,100%);text-align:center;background:#052227d9;border:24px solid transparent;border-image:url('./art/ui-panel.png') 166 144 fill/24px stretch;padding:34px 5px 30px;box-shadow:0 20px 65px #0007}
+.boot-brand{letter-spacing:4px;font-size:11px;color:#86e7c7}.boot-card h1{font-size:31px;letter-spacing:4px;font-weight:800;color:#ffe0a0;margin:12px 0 30px;text-shadow:0 2px 0 #001715,0 0 25px #d7ac3840}.beat{height:35px;display:flex;align-items:end;justify-content:center;gap:6px;margin:20px 0}.beat i{display:block;width:9px;height:26px;border:1px solid #c5b673;border-radius:3px;background:linear-gradient(#c7ffe8,#2baf8d);box-shadow:0 0 14px #70ffce55;animation:beat .555556s ease-out infinite;transform-origin:bottom}.beat i:nth-child(2n){height:19px;animation-delay:.138889s}.beat i:nth-child(3){height:34px;background:linear-gradient(#fff5c3,#d8ad52)}@keyframes beat{0%{transform:scaleY(1.15);filter:brightness(1.3)}80%,100%{transform:scaleY(.62);filter:brightness(.8)}}.boot-card p{margin:14px 0 0;color:#a7c9bd}.boot-card small{color:#86a69c;letter-spacing:1px}
+#status.error{display:block;inset:max(18px,env(safe-area-inset-top)) 16px auto;padding:25px 22px;max-height:88vh;overflow:auto;border:1px solid #a28a50;border-radius:16px;background:#07242bf7}#status.error strong{font-size:19px;color:#ffe0a0}#status.error p{margin:12px 0;overflow-wrap:anywhere}#status summary{cursor:pointer;color:#aad8ca;padding:8px 0}#status pre{font:11px/1.5 monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#031519;padding:12px;border-radius:8px;user-select:text}#status button{background:linear-gradient(#194b47,#072528);color:#ffe0a0;border:1px solid #b6a16a;border-radius:8px;padding:10px 20px;font:inherit;margin-top:12px;cursor:pointer}
+@media(prefers-reduced-motion:reduce){.beat i{animation:none}}
+</style>
+<script src="./system.js?v=v21r1"></script>
+<script type="systemjs-importmap">{"imports":{"cc":"./engine/cc.js?v=v21r1"}}</script>
+</head>
+<body>
+<div id="GameDiv"><div id="Cocos3dGameContainer"><canvas id="GameCanvas" tabindex="0"></canvas></div></div>
+<div id="safe-area-probe" aria-hidden="true"></div>
+<div id="status"><div class="boot-card"><div class="boot-brand">PULSEFRONT</div><h1>脉冲防线</h1><div class="beat"><i></i><i></i><i></i><i></i><i></i></div><p>脉冲引擎 · 正在启动</p><small>跟着鼓点，击穿敌潮</small></div></div>
+<script type="module" src="./boot.js?v=v21r1"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-export const RULESET = 'v2-20261123';
+export const RULESET = 'v21-20261123';
 export const LIMITS = Object.freeze({ enemies: 64, bullets: 192, waves: 10, effects: 96, step: 1 / 60, maxSteps: 4 });
 export const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 export function hash(text: string) { let h = 2166136261; for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619); return h >>> 0; }
@@ -38,6 +38,7 @@ export class Combat {
   height: number; defenseY: number; cannonY: number; time = 0; accumulator = 0; steps = 0; skippedSeconds = 0;
   state: 'playing' | 'upgrade' | 'won' | 'lost' = 'playing'; hp = 100; score = 0; kills = 0; perfects = 0; combo = 0; maxCombo = 0;
   energy = 0; overdrive = 0; held = false; aim = -Math.PI / 2; lastBeat = -1; lastPulse = -100; lastHurt = -100; revived = false;
+  shots = 0; hits = 0; lastShot = -100; lastKill = -100; lastHitX = 210; lastHitY = 200;
   bossSpawned = false; bossKilled = false; bossIndex = -1; draft = 0; choices: UpgradeId[] = []; collisionChecks = 0;
   private randomState: number; private cosmeticState = 9271; private spawnClock = .6; private shotClock = 0; private missileClock = 1; private waveId = 0; private generation = 0; private bossClock = 0;
   private deathQueue = new Int16Array(LIMITS.enemies); private deathCount = 0;
@@ -54,6 +55,7 @@ export class Combat {
   random() { let t = this.randomState += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }
   private cosmetic() { this.cosmeticState = Math.imul(this.cosmeticState, 1664525) + 1013904223 | 0; return (this.cosmeticState >>> 0) / 4294967296; }
   aimAt(x: number) { this.aim = -Math.PI / 2 + clamp((x - 210) / 170, -1, 1) * .88; }
+  press() { if (this.state !== 'playing') return; this.held = true; if (this.shotClock <= 0) { this.fire(); this.shotClock = this.overdrive > 0 ? .095 : .145; } }
   tap(clock = this.time) {
     if (this.state !== 'playing') return false;
     const b = Math.round(clock / this.beat), err = Math.abs(clock - b * this.beat);
@@ -85,7 +87,7 @@ export class Combat {
       for (let i = 0; i < count; i++) this.spawn(this.time < 7 ? 0 : this.random() < .22 ? 1 : this.random() < .2 ? 2 : 0, side ? (this.random() < .5 ? 24 : 396) : 38 + this.random() * 344, side ? 180 + this.random() * 70 : 104 - i * 35);
     }
     this.shotClock -= dt; this.missileClock -= dt;
-    if (this.held && this.shotClock <= 0) { this.fire(); this.shotClock = this.overdrive > 0 ? .105 : .17; }
+    if (this.held && this.shotClock <= 0) { this.fire(); this.shotClock = this.overdrive > 0 ? .095 : .145; }
     if (this.upgrades.seeker && this.missileClock <= 0) { this.missileClock = this.beat * 2; this.projectile(this.aim, 1); }
     this.grid.fill(-1); this.deathCount = 0;
     for (let i = 0; i < this.enemies.items.length; i++) {
@@ -126,7 +128,7 @@ export class Combat {
     }
     // Iterative bounded chain damage: each enemy enters the queue at most once.
     for (let k = 0; k < this.deathCount; k++) {
-      const e = this.enemies.items[this.deathQueue[k]]; if (!e.active) continue; e.active = false; this.kills++;
+      const e = this.enemies.items[this.deathQueue[k]]; if (!e.active) continue; e.active = false; this.kills++; this.lastKill = this.time;
       this.score += (e.type === 3 ? 1800 : e.type === 1 ? 70 : 35) * (1 + Math.min(3, Math.floor(this.combo / 8)));
       this.burst(e.x, e.y, e.type === 3 ? 1 : 0, e.type === 3 ? 16 : 5);
       if (e.type === 3) this.bossKilled = true;
@@ -135,7 +137,7 @@ export class Combat {
     for (const f of this.effects.items) if (f.active) { f.life -= dt; if (f.life <= 0) f.active = false; else { f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= .94; f.vy *= .94; } }
     if (this.hp <= 0) this.state = 'lost'; else if (this.time >= this.duration) this.state = this.bossKilled ? 'won' : 'lost';
   }
-  private hit(e: Enemy, damage: number) { if (e.hp <= 0) return; e.hp -= damage; e.hit = .075; if (e.hp <= 0 && this.deathCount < this.deathQueue.length) this.deathQueue[this.deathCount++] = this.enemies.items.indexOf(e); }
+  private hit(e: Enemy, damage: number) { if (e.hp <= 0) return; e.hp -= damage; e.hit = .09; this.hits++; this.lastHitX = e.x; this.lastHitY = e.y; if (this.hits % 2 === 0) this.burst(e.x, e.y, 3, 2); if (e.hp <= 0 && this.deathCount < this.deathQueue.length) this.deathQueue[this.deathCount++] = this.enemies.items.indexOf(e); }
   spawn(type: number, x: number, y: number) {
     const e = this.enemies.take(); if (!e) return; const scale = this.mode === 'daily' ? 1.7 : 1 + (this.level - 1) * .035;
     e.gen = ++this.generation; e.type = type; e.x = e.px = x; e.y = e.py = y; e.age = 0; e.phase = this.random() * 6.28;
@@ -143,8 +145,8 @@ export class Combat {
     e.speed = (type === 1 ? 30 : type === 2 ? 39 : 51) * (1 + Math.min(.55, (this.level - 1) * .009)); e.hit = 0; e.lastWave = 0; e.next = -1;
     if (type === 3) { this.bossIndex = this.enemies.items.indexOf(e); this.bossClock = 2; }
   }
-  private fire() { const n = 3 + this.upgrades.spread * 2; for (let j = 0; j < n; j++) this.projectile(this.aim + (j - (n - 1) / 2) * .115, 0); }
-  private projectile(angle: number, kind: number) { const b = this.bullets.take(); if (!b) return; b.x = b.px = 210 + Math.cos(angle) * 18; b.y = b.py = this.defenseY + 28; b.vx = Math.cos(angle) * 700; b.vy = Math.sin(angle) * 700; b.age = 0; b.kind = kind; b.damage = this.baseDamage * (1 + this.upgrades.pierce * .22) * (this.overdrive > 0 ? 1.65 : 1) * (kind === 1 ? 3 + this.baseSupport * .15 : 1); b.pierce = kind ? 0 : this.upgrades.pierce; b.lastEnemy = b.lastGen = -1; }
+  private fire() { this.shots++; this.lastShot = this.time; const n = 3 + this.upgrades.spread * 2; for (let j = 0; j < n; j++) this.projectile(this.aim + (j - (n - 1) / 2) * .095, 0); }
+  private projectile(angle: number, kind: number) { const b = this.bullets.take(); if (!b) return; b.x = b.px = 210 + Math.cos(angle) * 102; b.y = b.py = this.cannonY + Math.sin(angle) * 102; b.vx = Math.cos(angle) * 920; b.vy = Math.sin(angle) * 920; b.age = 0; b.kind = kind; b.damage = this.baseDamage * (1 + this.upgrades.pierce * .22) * (this.overdrive > 0 ? 1.65 : 1) * (kind === 1 ? 3 + this.baseSupport * .15 : 1); b.pierce = kind ? 0 : this.upgrades.pierce; b.lastEnemy = b.lastGen = -1; }
   private burst(x: number, y: number, kind: number, n: number) { for (let i = 0; i < n; i++) { const f = this.effects.take(); if (!f) return; const a = this.cosmetic() * 6.28, v = 35 + this.cosmetic() * 130; f.x = x; f.y = y; f.vx = Math.cos(a) * v; f.vy = Math.sin(a) * v; f.maxLife = f.life = .22 + this.cosmetic() * .28; f.kind = kind; f.size = 3 + this.cosmetic() * 5; } }
   private offer(): UpgradeId[] { const ids: UpgradeId[] = ['spread', 'pierce', 'chain', 'seeker', 'resonance', 'repair']; const result: UpgradeId[] = []; for (let n = 0; n < 3; n++) { const i = Math.floor(this.random() * ids.length); result.push(ids.splice(i, 1)[0]); } return result; }
   choose(id: UpgradeId) { if (this.state !== 'upgrade' || !this.choices.includes(id)) return false; this.upgrades[id]++; if (id === 'repair') this.hp = Math.min(100, this.hp + 25); this.draft++; this.state = 'playing'; this.accumulator = 0; return true; }

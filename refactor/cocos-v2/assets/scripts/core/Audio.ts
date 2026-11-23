@@ -4,6 +4,7 @@ import { host } from '../platform/Progress';
 export class Audio {
   ctx: any = null; bus: any = null; ready = false; muted = false; running = false; track: any; origin = 0; step = 0; duration = 90;
   private samples = new Map<string, any>(); private voices = new Set<any>(); private ticket = 0;
+  private cues = new Map<string, any>(); private cueTimes: Record<string, number> = {};
   diagnostics() { return { ready: this.ready, running: this.running, state: this.ctx ? this.ctx.state : 'unavailable', voices: this.voices.size, samples: this.samples.size }; }
   activate() {
     try { if (!this.ctx) { const wx = host(), scope: any = globalThis; this.ctx = wx && wx.createWebAudioContext ? wx.createWebAudioContext() : new (scope.AudioContext || scope.webkitAudioContext)(); this.bus = this.ctx.createGain(); this.bus.gain.value = this.muted ? 0 : .6; this.bus.connect(this.ctx.destination); } if (this.ctx.resume) Promise.resolve(this.ctx.resume()).catch(() => {}); this.ready = !['closed', 'suspended', 'interrupted'].includes(this.ctx.state); return true; } catch { this.ready = false; return false; }
@@ -24,9 +25,32 @@ export class Audio {
     }
     return b;
   }
+  private cue(name: string) {
+    if (this.cues.has(name)) return this.cues.get(name);
+    const rate = this.ctx.sampleRate || 44100, duration = name === 'perfect' ? .16 : name === 'break' ? .13 : .065;
+    const b = this.ctx.createBuffer(1, Math.ceil(rate * duration), rate), data = b.getChannelData(0); let phase = 0, seed = 117;
+    for (let i = 0; i < data.length; i++) {
+      const t = i / rate, life = t / duration, envelope = Math.min(1, t / .0015) * Math.exp(-life * 6) * (1 - life);
+      seed = Math.imul(seed, 1664525) + 1013904223 | 0; const noise = (seed >>> 0) / 2147483648 - 1;
+      const pitch = name === 'shot' ? 150 - life * 95 : name === 'perfect' ? 115 + life * 80 : name === 'ui' ? 390 - life * 160 : 230 - life * 160;
+      phase += Math.PI * 2 * pitch / rate;
+      data[i] = (Math.sin(phase) * .65 + Math.sin(phase * 2.5) * .12 + noise * (name === 'hit' || name === 'break' ? .28 : .045)) * envelope;
+    }
+    this.cues.set(name, b); return b;
+  }
+  feedback(name: 'shot' | 'hit' | 'perfect' | 'break' | 'ui') {
+    if (!this.ctx || this.muted || this.voices.size >= 60) return;
+    const now = this.ctx.currentTime, interval = name === 'shot' ? .095 : name === 'hit' ? .07 : name === 'perfect' ? .3 : .1;
+    if (now - (this.cueTimes[name] === undefined ? -100 : this.cueTimes[name]) < interval) return; this.cueTimes[name] = now;
+    if (!this.running) this.bus.gain.value = .6;
+    const s = this.ctx.createBufferSource(), gain = this.ctx.createGain(); s.buffer = this.cue(name);
+    gain.gain.value = name === 'perfect' ? .29 : name === 'ui' ? .18 : name === 'shot' ? .09 : .115;
+    s.connect(gain); gain.connect(this.bus); this.voices.add(s); s.onended = () => { this.voices.delete(s); try { s.disconnect(); gain.disconnect(); } catch {} }; s.start(now);
+  }
   async prepare(level: number) {
     const ticket = ++this.ticket; this.track = getTrack(level); if (!this.ctx) return;
     this.pause(); this.samples.clear(); const events = this.track.events; let batchStart = Date.now();
+    for (const name of ['shot', 'hit', 'perfect', 'break', 'ui']) this.cue(name);
     for (const e of events) { if (ticket !== this.ticket) return; const k = this.key(e); if (!this.samples.has(k)) this.samples.set(k, this.sample(e)); if (Date.now() - batchStart > 5) { await new Promise(r => setTimeout(r, 0)); batchStart = Date.now(); } }
   }
   start(offset: number, duration: number) { if (!this.ctx || !this.track) return; this.activate(); this.origin = this.ctx.currentTime - offset; this.step = Math.max(0, Math.floor(offset / (this.track.beat / 4))); this.duration = duration; this.running = true; this.tick(); }
@@ -58,5 +82,5 @@ export class Audio {
     }
   }
   pause() { this.running = false; for (const s of this.voices) { try { s.stop(); } catch {} if (s.onended) s.onended(); } this.voices.clear(); }
-  dispose() { this.ticket++; this.pause(); this.samples.clear(); if (this.ctx && this.ctx.close) this.ctx.close(); this.ctx = null; }
+  dispose() { this.ticket++; this.pause(); this.samples.clear(); this.cues.clear(); if (this.ctx && this.ctx.close) this.ctx.close(); this.ctx = null; }
 }
