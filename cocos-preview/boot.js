@@ -25,8 +25,30 @@ function fail(error){
   add('p',error?.code==='NO_WEBGL'?'当前浏览器没有提供 WebGL 图形支持，请换用支持 WebGL 的浏览器。':String(error?.message||error).slice(0,220));
   const details=document.createElement('details'),summary=document.createElement('summary'),pre=document.createElement('pre');
   summary.textContent='查看错误详情';pre.textContent=JSON.stringify(detail,null,2);details.append(summary,pre);status.appendChild(details);
+  // Clipboard APIs can be blocked in iOS WebViews. Always expose a real
+  // selectable text field; the button simply offers an optional shortcut.
+  const diagnosticText=JSON.stringify(detail,null,2);
+  const field=document.createElement('textarea');
+  field.readOnly=true;field.value=diagnosticText;field.rows=5;
+  field.setAttribute('aria-label','可手动复制的错误详情');
+  field.style.cssText='display:block;box-sizing:border-box;width:100%;margin:10px 0;padding:10px;background:#07111a;color:#ecf5f5;border:1px solid #557782;border-radius:8px;font:12px/1.5 monospace;-webkit-user-select:text;user-select:text;resize:none';
+  status.appendChild(field);
   const copy=add('button','复制诊断');copy.type='button';
-  copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(JSON.stringify(detail,null,2));copy.textContent='已复制';}catch{details.open=true;copy.textContent='请长按详情复制';}});
+  const selectText=()=>{
+    details.open=true;try{field.focus({preventScroll:true});}catch{field.focus();}
+    field.select();try{field.setSelectionRange(0,diagnosticText.length);}catch{}
+  };
+  copy.addEventListener('click',()=>{
+    selectText();
+    let copied=false;
+    try{copied=document.execCommand('copy')===true;}catch{}
+    if(copied){copy.textContent='已复制';return;}
+    if(navigator.clipboard?.writeText){
+      navigator.clipboard.writeText(diagnosticText)
+        .then(()=>{copy.textContent='已复制';})
+        .catch(()=>{selectText();copy.textContent='请长按文本框复制';});
+    }else copy.textContent='请长按文本框复制';
+  });
   try{window.cc?.game?.pause();}catch{}
 }
 window.addEventListener('error',e=>fail(e.error||e.message));window.addEventListener('unhandledrejection',e=>fail(e.reason));
@@ -64,7 +86,7 @@ try {
   await cc.game.init({overrideSettings:{screen:{designResolution:{width:420,height:840,policy:cc.ResolutionPolicy.FIXED_WIDTH},orientation:'portrait',frameRate:60},rendering:{renderMode:2,customPipeline:false},splashScreen:{totalTime:0},profiling:{showFPS:false},assets:{preloadBundles:[],preloadAssets:[]}}});
   window.__smokeStage='resources';await preloadArt(cc);
   window.__smokeStage='controller';
-  const {Pulsefront}=await System.import('./scripts/Pulsefront.js?v=81a7a01cc2f828cc-mobile-audio1');
+  const {Pulsefront}=await System.import('./scripts/Pulsefront.js?v=81a7a01cc2f828cc-mobile-audio2-ads1');
   window.__smokeStage='scene-data';
   const sceneResponse=await fetch('./Main.scene?v=81a7a01cc2f828cc');if(!sceneResponse.ok)throw new Error('主场景读取失败：HTTP '+sceneResponse.status);
   const sceneData=await sceneResponse.json();
