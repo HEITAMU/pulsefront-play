@@ -1,4 +1,4 @@
-System.register(["cc", "./core/engine.js?v=81a7a01cc2f828cc", "./core/music.js?v=81a7a01cc2f828cc", "./core/audio.js?v=81a7a01cc2f828cc-mobile-audio1", "./core/clock.js?v=81a7a01cc2f828cc", "./core/tutorial.js?v=81a7a01cc2f828cc", "./core/sway.js?v=81a7a01cc2f828cc", "./core/campaign.js?v=81a7a01cc2f828cc", "./core/economy.js?v=81a7a01cc2f828cc", "./core/growth.js?v=81a7a01cc2f828cc", "./core/support.js?v=81a7a01cc2f828cc", "./platform/Platform.js?v=81a7a01cc2f828cc-mobile-audio1", "./view/BattleView.js?v=81a7a01cc2f828cc", "./view/SupportPreviewView.js?v=81a7a01cc2f828cc", "./ui/Primitives.js?v=81a7a01cc2f828cc", "./ui/CannonButton.js?v=81a7a01cc2f828cc"], function (exports_1, context_1) {
+System.register(["cc", "./core/engine.js?v=81a7a01cc2f828cc", "./core/music.js?v=81a7a01cc2f828cc", "./core/audio.js?v=81a7a01cc2f828cc-mobile-audio1", "./core/clock.js?v=81a7a01cc2f828cc", "./core/tutorial.js?v=81a7a01cc2f828cc", "./core/sway.js?v=81a7a01cc2f828cc", "./core/campaign.js?v=81a7a01cc2f828cc", "./core/economy.js?v=81a7a01cc2f828cc", "./core/growth.js?v=81a7a01cc2f828cc", "./core/support.js?v=81a7a01cc2f828cc", "./platform/Platform.js?v=81a7a01cc2f828cc-mobile-audio2-ads1", "./view/BattleView.js?v=81a7a01cc2f828cc", "./view/SupportPreviewView.js?v=81a7a01cc2f828cc", "./ui/Primitives.js?v=81a7a01cc2f828cc", "./ui/CannonButton.js?v=81a7a01cc2f828cc"], function (exports_1, context_1) {
     "use strict";
     var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -934,8 +934,10 @@ System.register(["cc", "./core/engine.js?v=81a7a01cc2f828cc", "./core/music.js?v
                     Primitives_js_1.button(p.body, 'result-next', r.win && !complete ? '下一关 · ' + String(r.level + 1).padStart(2, '0') : '再战本关', 0, y, w, 51, () => this.launch(r.win && !complete ? r.level + 1 : r.level), { primary: true, size: 15 });
                     y += 64;
                     const revive = !r.win && !this.battle.revived && !this.battle.timedOut;
-                    if (this.ads.available && (r.win && receipt && !receipt.bonus || revive)) {
-                        Primitives_js_1.button(p.body, 'reward-ad', r.win ? '广告 · 完整观看再得 ' + receipt.base + ' 星屑' : '广告 · 完整观看恢复60护盾', 0, y, w, 46, () => this.offerReward(r.win ? 'clear_double' : 'revive', r));
+                    // One approved slot belongs to clear-double. A revive slot will be
+                    // enabled only after the publisher creates a separate placement.
+                    if (r.win && receipt && !receipt.bonus && this.ads.availableFor('clear_double')) {
+                        Primitives_js_1.button(p.body, 'reward-ad', '广告 · 完整观看再得 ' + receipt.base + ' 星屑', 0, y, w, 46, () => this.offerReward('clear_double', r));
                         y += 58;
                     }
                     if (revive) {
@@ -960,7 +962,7 @@ System.register(["cc", "./core/engine.js?v=81a7a01cc2f828cc", "./core/music.js?v
                     p.finish(286);
                 }
                 async requestReward(placement, r) {
-                    if (!this.ads.available || this.mode !== 'result')
+                    if (!this.ads.availableFor(placement) || this.mode !== 'result')
                         return;
                     const runId = this.activeRun.id;
                     this.mode = 'ad';
