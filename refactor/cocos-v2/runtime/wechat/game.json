@@ -1,0 +1,16 @@
+{
+  "deviceOrientation": "portrait",
+  "subpackages": [
+    {
+      "name": "artwork",
+      "root": "subpackages/artwork/"
+    }
+  ],
+  "networkTimeout": {
+    "request": 10000,
+    "connectSocket": 10000,
+    "uploadFile": 10000,
+    "downloadFile": 60000
+  },
+  "openDataContext": "openDataContext"
+}

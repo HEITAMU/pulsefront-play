@@ -1,0 +1,22 @@
+{
+  "name": "脉冲防线",
+  "platform": "web-mobile",
+  "buildPath": "project://build",
+  "outputName": "web-mobile",
+  "startScene": "155dc83d-9f19-4383-9092-d0ad5b70be38",
+  "scenes": [
+    {
+      "url": "db://assets/Main.scene",
+      "uuid": "155dc83d-9f19-4383-9092-d0ad5b70be38"
+    }
+  ],
+  "debug": false,
+  "md5Cache": true,
+  "mainBundleIsRemote": false,
+  "packages": {
+    "web-mobile": {
+      "orientation": "portrait",
+      "embedWebDebugger": false
+    }
+  }
+}
