@@ -7,9 +7,9 @@ export function viewportLayout(frameWidth: number, frameHeight: number) {
 }
 export function homeLayout(height: number, top: number, bottom: number) {
   const base = height - bottom;
-  const heroTop = top + 146, heroBottom = base - 278;
+  const heroTop = top + 146, heroBottom = base - 204;
   const heroSize = Math.min(328, Math.max(120, (heroBottom - heroTop) / 1.18));
-  return { heroY: (heroTop + heroBottom + heroSize * .18) / 2, heroSize, primaryY: base - 258, dailyY: base - 184, navY: base - 101, footerY: base - 29 };
+  return { heroY: (heroTop + heroBottom + heroSize * .18) / 2, heroSize, dailyY: base - 184, navY: base - 101, footerY: base - 29 };
 }
 /** View-only remap; daily simulation stays 420 × 840 on all phones. */
 export function arenaLayout(height: number, safeTop: number, safeBottom: number) {

@@ -1,5 +1,5 @@
 {
-  "checks": 26,
+  "checks": 33,
   "runs": [
     {
       "level": 1,
@@ -32,8 +32,8 @@
       "peakEnemies": 3,
       "peakBullets": 21,
       "peakEffects": 28,
-      "logicMeanMsEarly": 0.03268392821369058,
-      "logicMeanMsLate": 0.016774384359401408
+      "logicMeanMsEarly": 0.02533449916527515,
+      "logicMeanMsLate": 0.017302391014975015
     },
     {
       "level": 2,
@@ -66,8 +66,8 @@
       "peakEnemies": 3,
       "peakBullets": 32,
       "peakEffects": 29,
-      "logicMeanMsEarly": 0.019871392320534694,
-      "logicMeanMsLate": 0.01521152079866883
+      "logicMeanMsEarly": 0.017671520868113612,
+      "logicMeanMsLate": 0.010469585690517104
     },
     {
       "level": 10,
@@ -100,8 +100,8 @@
       "peakEnemies": 3,
       "peakBullets": 33,
       "peakEffects": 38,
-      "logicMeanMsEarly": 0.004057742904842636,
-      "logicMeanMsLate": 0.0030070665557393275
+      "logicMeanMsEarly": 0.0047072404006665465,
+      "logicMeanMsLate": 0.003776805324459887
     },
     {
       "level": 50,
@@ -134,8 +134,8 @@
       "peakEnemies": 6,
       "peakBullets": 20,
       "peakEffects": 43,
-      "logicMeanMsEarly": 0.002611083472453392,
-      "logicMeanMsLate": 0.007982900166389004
+      "logicMeanMsEarly": 0.002413492487479283,
+      "logicMeanMsLate": 0.012249715474210113
     },
     {
       "level": 100,
@@ -168,8 +168,8 @@
       "peakEnemies": 7,
       "peakBullets": 44,
       "peakEffects": 40,
-      "logicMeanMsEarly": 0.008083906510851531,
-      "logicMeanMsLate": 0.003974710482528836
+      "logicMeanMsEarly": 0.008509462437395487,
+      "logicMeanMsLate": 0.004535830282860617
     },
     {
       "level": 8,
@@ -202,8 +202,8 @@
       "peakEnemies": 4,
       "peakBullets": 21,
       "peakEffects": 45,
-      "logicMeanMsEarly": 0.002620589315526421,
-      "logicMeanMsLate": 0.0027449467554089163
+      "logicMeanMsEarly": 0.002460322203672947,
+      "logicMeanMsLate": 0.0028410632279537527
     }
   ],
   "stress": {
@@ -211,5 +211,7 @@
     "simulatedSeconds": 1560.4080000000008,
     "boundedPools": true
   },
-  "scope": "Node simulation/logic only. Not handset frame rate, GPU or audio playback verification."
+  "scope": "Node simulation/logic only. Not handset frame rate, GPU or audio playback verification.",
+  "runtimeContractChecks": 5,
+  "runtimeScope": "Controller, transform and WebAudio contract doubles only; no GPU, audible playback or device input verification."
 }

@@ -1,5 +1,5 @@
-import {registerBuiltinEffects} from './builtin-effects.js?v=v21r1';
-import {preloadArt} from './preload-art.js?v=v21r1';
+import {registerBuiltinEffects} from './builtin-effects.js?v=v22r1';
+import {preloadArt} from './preload-art.js?v=v22r1';
 const status=document.querySelector('#status');
 window.__smokeErrors=[];
 const stages={
@@ -15,13 +15,13 @@ function fail(error){
   if(window.__smokeFailed)return;
   window.__smokeFailed=true;
   const stage=window.__smokeStage||'engine-module';
-  const detail={version:'2.1.0',build:new URL(import.meta.url).searchParams.get('v')||'development',stage,
+  const detail={version:'2.2.0',build:new URL(import.meta.url).searchParams.get('v')||'development',stage,
     error:String(error?.message||error),stack:msg,webgl:window.__pulsefrontWebGL||null,userAgent:navigator.userAgent};
   window.__pulsefrontDiagnostic=detail;
   status.replaceChildren();status.className='error';status.hidden=false;
   const add=(tag,value)=>{const element=document.createElement(tag);element.textContent=value;status.appendChild(element);return element;};
   add('strong',error?.code==='NO_WEBGL'?'当前浏览器无法启动游戏画面':'游戏启动失败');
-  add('p','阶段：'+(stages[stage]||stage)+' · 2.1');
+  add('p','阶段：'+(stages[stage]||stage)+' · 2.2');
   add('p',error?.code==='NO_WEBGL'?'当前浏览器没有提供 WebGL 图形支持，请换用支持 WebGL 的浏览器。':String(error?.message||error).slice(0,220));
   const details=document.createElement('details'),summary=document.createElement('summary'),pre=document.createElement('pre');
   summary.textContent='查看错误详情';pre.textContent=JSON.stringify(detail,null,2);details.append(summary,pre);status.appendChild(details);
@@ -64,9 +64,9 @@ try {
   await cc.game.init({overrideSettings:{screen:{designResolution:{width:420,height:840,policy:cc.ResolutionPolicy.FIXED_WIDTH},orientation:'portrait',frameRate:60},rendering:{renderMode:2,customPipeline:false},splashScreen:{totalTime:0},profiling:{showFPS:false},assets:{preloadBundles:[],preloadAssets:[]}}});
   window.__smokeStage='resources';await preloadArt(cc);
   window.__smokeStage='controller';
-  const {Pulsefront}=await System.import('./scripts/Pulsefront.js?v=v21r1');
+  const {Pulsefront}=await System.import('./scripts/Pulsefront.js?v=v22r1');
   window.__smokeStage='scene-data';
-  const sceneResponse=await fetch('./Main.scene?v=v21r1');if(!sceneResponse.ok)throw new Error('主场景读取失败：HTTP '+sceneResponse.status);
+  const sceneResponse=await fetch('./Main.scene?v=v22r1');if(!sceneResponse.ok)throw new Error('主场景读取失败：HTTP '+sceneResponse.status);
   const sceneData=await sceneResponse.json();
   // Register the exact script meta id used in the deliverable scene so the real deserializer resolves it.
   cc.js._setClassId('8f5a73AOmtLlKCEpwujPXwh',Pulsefront);

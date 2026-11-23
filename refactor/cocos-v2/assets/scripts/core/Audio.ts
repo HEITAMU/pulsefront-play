@@ -5,7 +5,8 @@ export class Audio {
   ctx: any = null; bus: any = null; ready = false; muted = false; running = false; track: any; origin = 0; step = 0; duration = 90;
   private samples = new Map<string, any>(); private voices = new Set<any>(); private ticket = 0;
   private cues = new Map<string, any>(); private cueTimes: Record<string, number> = {};
-  diagnostics() { return { ready: this.ready, running: this.running, state: this.ctx ? this.ctx.state : 'unavailable', voices: this.voices.size, samples: this.samples.size }; }
+  private scheduler: ReturnType<typeof setInterval> | null = null; private preparedTrack: any = null;
+  diagnostics() { return { ready: this.ready, running: this.running, state: this.ctx ? this.ctx.state : 'unavailable', voices: this.voices.size, samples: this.samples.size, schedulerActive: this.scheduler !== null }; }
   activate() {
     try { if (!this.ctx) { const wx = host(), scope: any = globalThis; this.ctx = wx && wx.createWebAudioContext ? wx.createWebAudioContext() : new (scope.AudioContext || scope.webkitAudioContext)(); this.bus = this.ctx.createGain(); this.bus.gain.value = this.muted ? 0 : .6; this.bus.connect(this.ctx.destination); } if (this.ctx.resume) Promise.resolve(this.ctx.resume()).catch(() => {}); this.ready = !['closed', 'suspended', 'interrupted'].includes(this.ctx.state); return true; } catch { this.ready = false; return false; }
   }
@@ -49,11 +50,13 @@ export class Audio {
   }
   async prepare(level: number) {
     const ticket = ++this.ticket; this.track = getTrack(level); if (!this.ctx) return;
-    this.pause(); this.samples.clear(); const events = this.track.events; let batchStart = Date.now();
+    this.pause(); if (this.preparedTrack === this.track && this.samples.size) return;
+    this.preparedTrack = null; this.samples.clear(); const events = this.track.events; let batchStart = Date.now();
     for (const name of ['shot', 'hit', 'perfect', 'break', 'ui']) this.cue(name);
     for (const e of events) { if (ticket !== this.ticket) return; const k = this.key(e); if (!this.samples.has(k)) this.samples.set(k, this.sample(e)); if (Date.now() - batchStart > 5) { await new Promise(r => setTimeout(r, 0)); batchStart = Date.now(); } }
+    if (ticket === this.ticket) this.preparedTrack = this.track;
   }
-  start(offset: number, duration: number) { if (!this.ctx || !this.track) return; this.activate(); this.origin = this.ctx.currentTime - offset; this.step = Math.max(0, Math.floor(offset / (this.track.beat / 4))); this.duration = duration; this.running = true; this.tick(); }
+  start(offset: number, duration: number) { if (!this.ctx || !this.track) return; this.pause(); this.activate(); this.origin = this.ctx.currentTime - offset; this.step = Math.max(0, Math.floor(offset / (this.track.beat / 4))); this.duration = duration; this.running = true; this.tick(); if (this.running) this.scheduler = setInterval(() => this.tick(), 25); }
   transportPosition(fallback: number) { return this.ctx && this.running ? Math.max(0, this.ctx.currentTime - this.origin) : fallback; }
   position(fallback: number) {
     if (!this.ctx || !this.running) return fallback;
@@ -69,7 +72,7 @@ export class Audio {
     // Skip stale scheduled work after a stall; never schedule a burst of missed notes.
     if (elapsed - stepTime(this.track, this.step) > .25) this.step = Math.floor(elapsed / (this.track.beat / 4));
     let budget = 16;
-    while (this.origin + stepTime(this.track, this.step) < now + .095 && budget-- > 0) {
+    while (this.origin + stepTime(this.track, this.step) < now + .18 && budget-- > 0) {
       const at = this.origin + stepTime(this.track, this.step), entries = this.track.byStep[this.step % (this.track.bars * 16)] || [];
       if (at >= now - .025) for (const e of entries) {
         if (this.voices.size >= 64) break; const sample = this.samples.get(this.key(e)); if (!sample) continue;
@@ -81,6 +84,6 @@ export class Audio {
       this.step++;
     }
   }
-  pause() { this.running = false; for (const s of this.voices) { try { s.stop(); } catch {} if (s.onended) s.onended(); } this.voices.clear(); }
-  dispose() { this.ticket++; this.pause(); this.samples.clear(); this.cues.clear(); if (this.ctx && this.ctx.close) this.ctx.close(); this.ctx = null; }
+  pause() { this.running = false; if (this.scheduler !== null) clearInterval(this.scheduler); this.scheduler = null; for (const s of this.voices) { try { s.stop(); } catch {} if (s.onended) s.onended(); } this.voices.clear(); }
+  dispose() { this.ticket++; this.pause(); this.samples.clear(); this.cues.clear(); this.preparedTrack = null; if (this.ctx && this.ctx.close) this.ctx.close(); this.ctx = null; }
 }
