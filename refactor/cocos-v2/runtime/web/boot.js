@@ -1,9 +1,7 @@
-import {registerBuiltinEffects} from './builtin-effects.js?v=v22r1';
-import {preloadArt} from './preload-art.js?v=v22r1';
 const status=document.querySelector('#status');
 window.__smokeErrors=[];
 const stages={
-  'context-probe':'检查图形支持','engine-module':'载入引擎','engine-init':'初始化引擎',
+  'startup-modules':'读取启动组件','context-probe':'检查图形支持','engine-module':'载入引擎','engine-init':'初始化引擎',
   'materials':'初始化画面材质','pipeline':'初始化渲染管线','resources':'载入图片资源',
   'controller':'载入游戏脚本','scene-data':'读取主场景','scene-deserialize':'解析主场景',
   'scene-run':'启动游戏场景','first-frame':'准备首帧','running':'运行游戏'
@@ -15,7 +13,7 @@ function fail(error){
   if(window.__smokeFailed)return;
   window.__smokeFailed=true;
   const stage=window.__smokeStage||'engine-module';
-  const detail={version:'2.2.0',build:new URL(import.meta.url).searchParams.get('v')||'development',stage,
+  const detail={version:'2.2.1',build:new URL(import.meta.url).searchParams.get('v')||'development',stage,
     error:String(error?.message||error),stack:msg,webgl:window.__pulsefrontWebGL||null,userAgent:navigator.userAgent};
   window.__pulsefrontDiagnostic=detail;
   status.replaceChildren();status.className='error';status.hidden=false;
@@ -56,6 +54,8 @@ function probeWebGL(){
 }
 async function start(){
 try {
+  window.__smokeStage='startup-modules';
+  const [{registerBuiltinEffects},{preloadArt}]=await Promise.all([import('./builtin-effects.js?v=v221r1'),import('./preload-art.js?v=v221r1')]);
   window.__smokeStage='context-probe';probeWebGL();
   window.__smokeStage='engine-module';
   const cc=await System.import('cc');window.cc=cc;
@@ -64,9 +64,9 @@ try {
   await cc.game.init({overrideSettings:{screen:{designResolution:{width:420,height:840,policy:cc.ResolutionPolicy.FIXED_WIDTH},orientation:'portrait',frameRate:60},rendering:{renderMode:2,customPipeline:false},splashScreen:{totalTime:0},profiling:{showFPS:false},assets:{preloadBundles:[],preloadAssets:[]}}});
   window.__smokeStage='resources';await preloadArt(cc);
   window.__smokeStage='controller';
-  const {Pulsefront}=await System.import('./scripts/Pulsefront.js?v=v22r1');
+  const {Pulsefront}=await System.import('./scripts/Pulsefront.js?v=v221r1');
   window.__smokeStage='scene-data';
-  const sceneResponse=await fetch('./Main.scene?v=v22r1');if(!sceneResponse.ok)throw new Error('主场景读取失败：HTTP '+sceneResponse.status);
+  const sceneResponse=await fetch('./Main.scene?v=v221r1');if(!sceneResponse.ok)throw new Error('主场景读取失败：HTTP '+sceneResponse.status);
   const sceneData=await sceneResponse.json();
   // Register the exact script meta id used in the deliverable scene so the real deserializer resolves it.
   cc.js._setClassId('8f5a73AOmtLlKCEpwujPXwh',Pulsefront);
@@ -76,7 +76,7 @@ try {
   window.__smokeStage='scene-run';
   cc.director.runSceneImmediate(asset.scene);
   window.__smokeStage='first-frame';
-  cc.director.once(cc.Director.EVENT_AFTER_DRAW,()=>{if(!window.__smokeFailed){status.hidden=true;window.__smokeStage='running';window.__smokeReady=true;}});
+  cc.director.once(cc.Director.EVENT_AFTER_DRAW,()=>{if(!window.__smokeFailed){status.hidden=true;window.__smokeStage='running';window.__smokeReady=true;clearInterval(window.__bootWatchdog);}});
   cc.game.run();
 } catch(error){fail(error);}
 }

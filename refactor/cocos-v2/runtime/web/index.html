@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#04161c">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>脉冲防线 · 2.2</title>
+<title>脉冲防线 · 2.2.1</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#04161c}body{position:fixed;inset:0;-webkit-user-select:none;user-select:none}
 #GameDiv,#Cocos3dGameContainer{position:absolute;inset:0;width:100%!important;height:100%!important;margin:0!important;padding:0!important;overflow:hidden}#GameCanvas{display:block;touch-action:none;outline:none}
@@ -16,13 +16,23 @@
 #status.error{display:block;inset:max(18px,env(safe-area-inset-top)) 16px auto;padding:25px 22px;max-height:88vh;overflow:auto;border:1px solid #a28a50;border-radius:16px;background:#07242bf7}#status.error strong{font-size:19px;color:#ffe0a0}#status.error p{margin:12px 0;overflow-wrap:anywhere}#status summary{cursor:pointer;color:#aad8ca;padding:8px 0}#status pre{font:11px/1.5 monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#031519;padding:12px;border-radius:8px;user-select:text}#status button{background:linear-gradient(#194b47,#072528);color:#ffe0a0;border:1px solid #b6a16a;border-radius:8px;padding:10px 20px;font:inherit;margin-top:12px;cursor:pointer}
 @media(prefers-reduced-motion:reduce){.beat i{animation:none}}
 </style>
-<script src="./system.js?v=v22r1"></script>
-<script type="systemjs-importmap">{"imports":{"cc":"./engine/cc.js?v=v22r1"}}</script>
+
+<script type="systemjs-importmap">{"imports":{"cc":"./engine/cc.js?v=v221r1"}}</script>
 </head>
 <body>
 <div id="GameDiv"><div id="Cocos3dGameContainer"><canvas id="GameCanvas" tabindex="0"></canvas></div></div>
 <div id="safe-area-probe" aria-hidden="true"></div>
 <div id="status"><div class="boot-card"><div class="boot-brand">PULSEFRONT</div><h1>脉冲防线</h1><div class="beat"><i></i><i></i><i></i><i></i><i></i></div><p>脉冲引擎 · 正在启动</p><small>跟着鼓点，击穿敌潮</small></div></div>
-<script type="module" src="./boot.js?v=v22r1"></script>
+<script>
+(function(){
+  var started=Date.now(),lastStage='',stageAt=started;
+  var status=document.getElementById('status'),label=status.querySelector('p');
+  var names={'startup-modules':'读取启动组件','context-probe':'检查图形支持','engine-module':'载入引擎','engine-init':'初始化引擎','materials':'准备画面材质','pipeline':'准备渲染管线','resources':'载入美术资源','controller':'载入游戏脚本','scene-data':'读取关卡','scene-deserialize':'解析关卡','scene-run':'启动场景','first-frame':'准备首帧'};
+  function fail(message){if(window.__smokeReady||window.__smokeFailed)return;window.__smokeFailed=true;clearInterval(window.__bootWatchdog);status.className='error';status.hidden=false;status.replaceChildren();var title=document.createElement('strong');title.textContent='启动未完成 · 2.2.1';status.appendChild(title);var detail=document.createElement('p');detail.textContent=message;status.appendChild(detail);var retry=document.createElement('button');retry.textContent='重新载入';retry.onclick=function(){var u=new URL(location.href);u.searchParams.set('retry',String(Date.now()));location.replace(u.href);};status.appendChild(retry);}
+  window.__bootWatchdog=setInterval(function(){if(window.__smokeReady||window.__smokeFailed){clearInterval(window.__bootWatchdog);return;}var stage=window.__smokeStage||'启动脚本';if(stage!==lastStage){lastStage=stage;stageAt=Date.now();}label.textContent=(names[stage]||stage)+' · '+Math.floor((Date.now()-started)/1000)+' 秒';if(Date.now()-stageAt>45000)fail((names[stage]||stage)+'超时。请重新载入；若再次停住，请反馈这一行阶段名称。');},500);
+  window.addEventListener('error',function(e){if(!window.__smokeStage)fail('启动脚本未能载入：'+(e.message||'网络资源读取失败'));});
+  var system=document.createElement('script');system.src='./system.js?v=v221r1';system.onerror=function(){fail('引擎加载器读取失败，请重新载入。');};system.onload=function(){import('./boot.js?v=v221r1').catch(function(e){fail('启动组件读取失败：'+String(e.message||e));});};document.head.appendChild(system);
+})();
+</script>
 </body>
 </html>
