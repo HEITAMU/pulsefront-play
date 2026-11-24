@@ -11,21 +11,28 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for published page and verify approved built assets
+      - uses: actions/checkout@v4
+      - name: Verify live files match latest committed startup bundle
         shell: bash
         run: |
           set -euo pipefail
-          base='https://heitamu.github.io/pulsefront-play/trial-current'
+          root="$GITHUB_WORKSPACE/trial-current"
+          archive="$(grep -oE 'startup\.[0-9a-f]{12}\.bin' "$root/index.html" | head -n 1)"
+          test -n "$archive"
+          fallback="${archive%.bin}.js"
+          test -s "$root/$archive"
+          test -s "$root/$fallback"
+          base="https://heitamu.github.io/pulsefront-play/trial-current"
           mkdir -p /tmp/pulsefront-current
           cd /tmp/pulsefront-current
           ok=0
           for attempt in $(seq 1 24); do
             if curl --fail --silent --show-error --location "$base/index.html" -o index.html \
-              && curl --fail --silent --show-error --location "$base/startup.541f7b9af63b.bin" -o startup.541f7b9af63b.bin \
-              && curl --fail --silent --show-error --location "$base/startup.541f7b9af63b.js" -o startup.541f7b9af63b.js \
-              && echo '9fc54b304199d9b4ea5dc48b38170396c395c2e4fddabb35ca1d16c1c19269cc  index.html' | sha256sum --check \
-              && echo '6ecbb7fc025398fb5398764f8544155eaa3f4148df8dbecf750ed6d46c64b56d  startup.541f7b9af63b.bin' | sha256sum --check \
-              && echo '541f7b9af63bde87d685e39db56b3ad127ece71251d6dae3d77398b958262719  startup.541f7b9af63b.js' | sha256sum --check; then
+              && curl --fail --silent --show-error --location "$base/$archive" -o "$archive" \
+              && curl --fail --silent --show-error --location "$base/$fallback" -o "$fallback" \
+              && cmp -s "$root/index.html" index.html \
+              && cmp -s "$root/$archive" "$archive" \
+              && cmp -s "$root/$fallback" "$fallback"; then
               ok=1
               break
             fi
@@ -33,10 +40,11 @@ jobs:
           done
           test "$ok" = 1
           grep -q '节拍不能停' index.html
-          python3 - <<'PY'
+          python3 - "$archive" <<'PY'
           import gzip
           from pathlib import Path
-          content = gzip.decompress(Path('startup.541f7b9af63b.bin').read_bytes())
+          import sys
+          content = gzip.decompress(Path(sys.argv[1]).read_bytes())
           assert len(content) > 2_000_000, "Expected complete Cocos startup payload"
-          print("LIVE current r49 handoff build verified",len(content))
+          print("LIVE current build verified",sys.argv[1],len(content))
           PY
