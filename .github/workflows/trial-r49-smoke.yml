@@ -1,0 +1,39 @@
+name: Verify published Cocos r49 trial
+
+on:
+  push:
+    paths:
+      - 'trial-r49/**'
+      - '.github/workflows/trial-r49-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check live web assets against approved r49 build
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://heitamu.github.io/pulsefront-play/trial-r49'
+          mkdir -p /tmp/r49-trial
+          cd /tmp/r49-trial
+          for asset in index.html startup.b3bd64f7a2f7.bin startup.b3bd64f7a2f7.js; do
+            curl -fsSL --retry 8 --retry-delay 3 --retry-all-errors "$base/$asset" -o "$asset"
+          done
+          cat <<'SHAS' | sha256sum --check
+          ba14285746c48762f53db06656c33fcfedb698b021570354a8a13377eb4005be  index.html
+          599cdfc7480ed67636eddf4569bf6a740945e4eb9fbe7f1dfc279ba3b2c73208  startup.b3bd64f7a2f7.bin
+          b3bd64f7a2f7bebb8b0e6a49024bb460e856fba2b704a24791be6ce5f00bb026  startup.b3bd64f7a2f7.js
+          SHAS
+          grep -q '节拍不能停' index.html
+          python3 - <<'PY'
+          import gzip
+          from pathlib import Path
+          data=gzip.decompress(Path('startup.b3bd64f7a2f7.bin').read_bytes())
+          assert len(data)>2000000 and b'__startupData' in data
+          print('Live r49 HTML, packed game and uncompressed fallback verified')
+          PY
