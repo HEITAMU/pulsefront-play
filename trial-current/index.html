@@ -38,13 +38,13 @@ async function downloadStartup(){
   const controller=new AbortController();let timer;
   const touch=()=>{clearTimeout(timer);timer=setTimeout(()=>controller.abort(),6000);};touch();
   try{
-   const response=await fetch('./startup.541f7b9af63b.bin',{cache:'force-cache',signal:controller.signal});
+   const response=await fetch('./startup.b4c088ef0a4b.bin',{cache:'force-cache',signal:controller.signal});
    if(!response.ok)throw Error('HTTP '+response.status);
    const reader=response.body.getReader(),parts=[];let received=0;
    const cancel=()=>reader.cancel().catch(()=>{});controller.signal.addEventListener('abort',cancel,{once:true});
-   try{while(true){const {done,value}=await reader.read();if(controller.signal.aborted)throw Error('连接中断');if(done)break;parts.push(value);received+=value.length;touch();window.__resourceActivity=Date.now();window.__displayProgress=Math.min(90,Math.floor(received/1192651*90));label.textContent=window.__displayProgress+'%';status.style.setProperty('--progress',window.__displayProgress+'%');}}
+   try{while(true){const {done,value}=await reader.read();if(controller.signal.aborted)throw Error('连接中断');if(done)break;parts.push(value);received+=value.length;touch();window.__resourceActivity=Date.now();window.__displayProgress=Math.min(90,Math.floor(received/1193736*90));label.textContent=window.__displayProgress+'%';status.style.setProperty('--progress',window.__displayProgress+'%');}}
    finally{controller.signal.removeEventListener('abort',cancel);reader.releaseLock();}
-   if(received!==1192651)throw Error('启动资源不完整');
+   if(received!==1193736)throw Error('启动资源不完整');
    return new Blob(parts);
   }catch(error){last=error;}finally{clearTimeout(timer);}
  }
@@ -52,7 +52,7 @@ async function downloadStartup(){
 }
 async function bundledStart(){
  window.__smokeStage='startup-download';
- function legacy(){const script=document.createElement('script');script.src='./startup.541f7b9af63b.js';script.onerror=()=>fail('启动资源读取失败，请重新载入。');document.head.appendChild(script);}
+ function legacy(){const script=document.createElement('script');script.src='./startup.b4c088ef0a4b.js';script.onerror=()=>fail('启动资源读取失败，请重新载入。');document.head.appendChild(script);}
  if(typeof DecompressionStream!=='function'){legacy();return;}
  let source,blob;
  try{blob=await downloadStartup();}catch(error){fail('启动资源读取失败：'+String(error.message||error));return;}
