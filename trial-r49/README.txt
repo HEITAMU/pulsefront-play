@@ -1,0 +1,1 @@
+Pulsefront Cocos Creator 3.8.8 r49 mobile web trial. Three-file packed release: index.html, startup.*.bin and startup.*.js. This is a compiled browser build; editable project source remains in private HEITAMU/pulsefront-cocos-handoff repository.
