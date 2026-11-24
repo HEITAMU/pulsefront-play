@@ -1,0 +1,13 @@
+{
+  "ver": "4.0.23",
+  "importer": "typescript",
+  "imported": true,
+  "uuid": "8f5a7dc0-3a6b-4b94-a084-a70ba33d7c21",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "moduleId": "project:///assets/scripts/Pulsefront.js",
+    "importerSettings": 7,
+    "simulateGlobals": []
+  }
+}

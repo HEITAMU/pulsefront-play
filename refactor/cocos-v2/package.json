@@ -1,0 +1,22 @@
+{
+  "name": "pulsefront-cocos-v2",
+  "uuid": "2da849b1-5f86-4d3d-9bb7-e45ce48c0b92",
+  "version": "2.2.0",
+  "private": true,
+  "type": "2d",
+  "creator": {
+    "version": "3.8.8"
+  },
+  "scripts": {
+    "test": "node tools/test.mjs",
+    "build:trial": "node tools/build-trial.mjs",
+    "build:web": "node tools/build/creator-build.mjs web-mobile",
+    "build:wechat": "node tools/build/creator-build.mjs wechatgame",
+    "typecheck": "tsc -p tsconfig.verify.json"
+  },
+  "devDependencies": {
+    "@cocos/creator-types": "3.8.8",
+    "acorn": "8.14.0",
+    "typescript": "5.7.3"
+  }
+}

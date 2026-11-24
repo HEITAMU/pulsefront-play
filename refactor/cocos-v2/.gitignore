@@ -1,0 +1,7 @@
+node_modules/
+temp/
+library/
+/build/
+.test-build/
+profiles/
+local/

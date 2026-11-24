@@ -1,0 +1,30 @@
+{
+  "description": "脉冲防线 Cocos 3.8.8 重构试玩",
+  "projectname": "pulsefront-cocos-v2",
+  "appid": "wx43da24c6ac1e5a12",
+  "compileType": "game",
+  "libVersion": "3.9.0",
+  "setting": {
+    "es6": false,
+    "minified": true,
+    "urlCheck": true,
+    "enhance": false
+  },
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "file",
+        "value": "BUILD-INFO.json"
+      },
+      {
+        "type": "file",
+        "value": "PACKAGE-REPORT.json"
+      },
+      {
+        "type": "file",
+        "value": "README-试用说明.txt"
+      }
+    ]
+  },
+  "miniprogramRoot": "./"
+}
