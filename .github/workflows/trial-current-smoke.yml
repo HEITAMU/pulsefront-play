@@ -1,0 +1,42 @@
+name: Verify current Cocos mobile trial
+on:
+  push:
+    paths:
+      - 'trial-current/**'
+      - '.github/workflows/trial-current-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for published page and verify approved built assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://heitamu.github.io/pulsefront-play/trial-current'
+          mkdir -p /tmp/pulsefront-current
+          cd /tmp/pulsefront-current
+          ok=0
+          for attempt in $(seq 1 24); do
+            if curl --fail --silent --show-error --location "$base/index.html" -o index.html \
+              && curl --fail --silent --show-error --location "$base/startup.541f7b9af63b.bin" -o startup.541f7b9af63b.bin \
+              && curl --fail --silent --show-error --location "$base/startup.541f7b9af63b.js" -o startup.541f7b9af63b.js \
+              && echo '9fc54b304199d9b4ea5dc48b38170396c395c2e4fddabb35ca1d16c1c19269cc  index.html' | sha256sum --check \
+              && echo '6ecbb7fc025398fb5398764f8544155eaa3f4148df8dbecf750ed6d46c64b56d  startup.541f7b9af63b.bin' | sha256sum --check \
+              && echo '541f7b9af63bde87d685e39db56b3ad127ece71251d6dae3d77398b958262719  startup.541f7b9af63b.js' | sha256sum --check; then
+              ok=1
+              break
+            fi
+            sleep 10
+          done
+          test "$ok" = 1
+          grep -q '节拍不能停' index.html
+          python3 - <<'PY'
+          import gzip
+          from pathlib import Path
+          content = gzip.decompress(Path('startup.541f7b9af63b.bin').read_bytes())
+          assert len(content) > 2_000_000, "Expected complete Cocos startup payload"
+          print("LIVE current r49 handoff build verified",len(content))
+          PY
